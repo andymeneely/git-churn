@@ -1,11 +1,18 @@
 use git2::Repository;
 
 fn main() {
-    let repo = match git2::Repository::open(".") {
+    let repo = match Repository::open(".") {
         Ok(repo) => repo,
         Err(e) => panic!("failed to open: {}", e),
     };
-    // println!("Repo head is: {}",head.id());
+    let head = match repo.revparse_single("test-first-test") {
+        Ok(head) => head,
+        Err(e) => panic!("failed to revparse: {}", e),
+    };
+    let commit  = head.peel_to_commit().unwrap();
+    println!("Commit message is: {}",commit.message().unwrap_or(""));
+
+
 }
 
 #[cfg(test)]
