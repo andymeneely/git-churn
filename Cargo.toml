@@ -5,3 +5,4 @@ authors = ["Andy Meneely <andy@se.rit.edu>"]
 edition = "2018"
 
 [dependencies]
+git2 = "0.8"
