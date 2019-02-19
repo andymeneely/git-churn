@@ -1,0 +1,7 @@
+[package]
+name = "git-churn"
+version = "0.1.0"
+authors = ["Andy Meneely <andy@se.rit.edu>"]
+edition = "2018"
+
+[dependencies]
