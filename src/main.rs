@@ -1,7 +1,6 @@
-use git2::Repository;
-use git2::DiffOptions;
-use git2::DiffFormat;
+use git2::*;
 
+#[allow(unused_variables)]
 fn main() {
     let repo = match Repository::open(".") {
         Ok(repo) => repo,
@@ -23,11 +22,38 @@ fn main() {
             Err(e) => panic!("failed to revparse: {}", e),
         };
         let mut diff_opts = DiffOptions::new();
-        let diff = repo.diff_tree_to_tree(Some(&p_tree), Some(&commit_tree), Some(&mut diff_opts));
+        diff_opts.ignore_whitespace(true);
+        diff_opts.context_lines(0);
+        diff_opts.ignore_filemode(true);
+        // diff_opts.indent_heuristic(true);
+        let diff = repo.diff_tree_to_tree(Some(&p_tree), Some(&commit_tree), Some(&mut diff_opts)).unwrap();
 
-        // diff.unwrap().print(DiffFormat::Patch,());
-        // println!("Diff: {:#?}", diff);
+        // println!("Diff: {:#?}", diff.unwrap().print(DiffFormat::Patch, print_callback).unwrap());
+        let diff_stats = diff.stats().unwrap();
+        println!("Diff stats: {} insertions, {} deletions", diff_stats.insertions(), diff_stats.deletions() );
+
+        println!("--- DIFF ---");
+        diff.foreach(&mut file_cb, Some(&mut binary_cb), Some(&mut hunk_cb), Some(&mut line_cb));
     }
+}
+
+fn file_cb(d:DiffDelta, progress:f32 ) -> bool {
+    true
+}
+fn binary_cb(d:DiffDelta, db:DiffBinary ) -> bool {
+    true
+}
+fn hunk_cb(d:DiffDelta, dh:DiffHunk) -> bool {
+    true
+}
+fn line_cb(d:DiffDelta, o:Option<DiffHunk>, l:DiffLine ) -> bool {
+    print!("{}   {}", l.origin(), String::from_utf8(l.content().to_vec()).unwrap());
+    true
+}
+
+#[allow(unused_variables)]
+fn print_callback(d:DiffDelta, o:Option<DiffHunk>, l:DiffLine ) -> bool {
+    true
 }
 
 #[cfg(test)]
