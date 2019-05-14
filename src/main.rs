@@ -1,58 +1,75 @@
 use git2::*;
+use std::path::Path;
 
-#[allow(unused_variables)]
-fn main() {
-    let repo = match Repository::open(".") {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
-    };
-    let head = match repo.revparse_single("test-first-test") {
-        Ok(head) => head,
-        Err(e) => panic!("failed to revparse: {}", e),
-    };
-    let commit  = head.peel_to_commit().unwrap();
-    let commit_tree = match head.peel_to_commit().unwrap().tree() {
-        Ok(commit_tree) => commit_tree,
-        Err(e) => panic!("failed to revparse: {}", e),
-    };
-    println!("Commit message is: {}",commit.message().unwrap_or(""));
+mod git_churn;
+
+fn compute_churn(){
+    let repo = Repository::open(".").expect("Could not open repo");
+    let head = repo.revparse_single("test-first-test").expect("Failed revparse");
+    let commit  = head.peel_to_commit().expect("Could not peel to commit");
+    let commit_tree = commit.tree().expect("Could not get tree");
     for p in commit.parents(){
-        let p_tree = match p.tree() {
-            Ok(p_tree) => p_tree,
-            Err(e) => panic!("failed to revparse: {}", e),
-        };
-        let mut diff_opts = DiffOptions::new();
-        diff_opts.ignore_whitespace(true);
-        diff_opts.context_lines(0);
-        diff_opts.ignore_filemode(true);
-        // diff_opts.indent_heuristic(true);
-        let diff = repo.diff_tree_to_tree(Some(&p_tree), Some(&commit_tree), Some(&mut diff_opts)).unwrap();
+        let parent_tree = p.tree().expect("Failed find parent tree");
+        let mut diff_opts = init_diff_opts();
+        let diff = repo.diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), Some(&mut diff_opts)).unwrap();
+        let diff_stats = diff.stats().expect("Failed to compute diff_stats");
 
-        // println!("Diff: {:#?}", diff.unwrap().print(DiffFormat::Patch, print_callback).unwrap());
-        let diff_stats = diff.stats().unwrap();
         println!("Diff stats: {} insertions, {} deletions", diff_stats.insertions(), diff_stats.deletions() );
 
         println!("--- DIFF ---");
-        diff.foreach(&mut file_cb, Some(&mut binary_cb), Some(&mut hunk_cb), Some(&mut line_cb));
+        diff.foreach(&mut file_cb,
+                     Some(&mut binary_cb),
+                     Some(&mut hunk_cb),
+                     Some(&mut line_cb))
+            .expect("Failed to iterate over diff");
+
+        println!("-- BLAME --");
+        let mut blame_opts = init_blame_opts(head.id());
+        let path = Path::new("src/main.rs");
+        let blame = repo.blame_file(&path, Some(&mut blame_opts)).expect("Failed to execute blame");
+        for hunk in blame.iter() {
+            println!("Hunk {} Start line: {}", hunk.orig_commit_id(), hunk.final_start_line());
+        }
     }
 }
 
-fn file_cb(d:DiffDelta, progress:f32 ) -> bool {
-    true
+fn init_diff_opts() -> DiffOptions {
+    let mut diff_opts = DiffOptions::new();
+    diff_opts.ignore_whitespace(true);
+    diff_opts.context_lines(0);
+    diff_opts.ignore_filemode(true);
+    diff_opts.indent_heuristic(true);
+    return diff_opts;
 }
-fn binary_cb(d:DiffDelta, db:DiffBinary ) -> bool {
-    true
+
+fn init_blame_opts(head_id: Oid) -> BlameOptions {
+    let mut blame_opts = BlameOptions::new();
+    blame_opts.newest_commit(head_id);
+    blame_opts.track_copies_same_file(true);
+    blame_opts.track_copies_same_commit_moves(false);
+    blame_opts.track_copies_same_commit_copies(false);
+    blame_opts.track_copies_any_commit_copies(false);
+    return blame_opts;
 }
-fn hunk_cb(d:DiffDelta, dh:DiffHunk) -> bool {
-    true
+
+fn main() {
+    compute_churn();
 }
-fn line_cb(d:DiffDelta, o:Option<DiffHunk>, l:DiffLine ) -> bool {
-    print!("{}   {}", l.origin(), String::from_utf8(l.content().to_vec()).unwrap());
+
+fn file_cb(_d:DiffDelta, _progress:f32 ) -> bool {
     true
 }
 
-#[allow(unused_variables)]
-fn print_callback(d:DiffDelta, o:Option<DiffHunk>, l:DiffLine ) -> bool {
+fn binary_cb(_d:DiffDelta, _db:DiffBinary ) -> bool {
+    true
+}
+
+fn hunk_cb(_d:DiffDelta, _dh:DiffHunk) -> bool {
+    true
+}
+
+fn line_cb(_d:DiffDelta, _o:Option<DiffHunk>, l:DiffLine ) -> bool {
+    print!("{}   {}", l.origin(), String::from_utf8(l.content().to_vec()).unwrap());
     true
 }
 
@@ -61,15 +78,8 @@ mod tests {
 
     #[test]
     fn test_goofing_tag() {
-        let repo = match git2::Repository::open(".") {
-            Ok(repo) => repo,
-            Err(e) => panic!("failed to open: {}", e),
-        };
-        let head = match repo.revparse_single("test-goofing") {
-            Ok(head) => head,
-            Err(e) => panic!("failed to revparse: {}", e),
-        };
-
+        let repo = git2::Repository::open(".").expect("Failed to open git repo .");
+        let head = repo.revparse_single("test-goofing").expect("Could not parse");
         assert_eq!("79caa008ba1f9d06b34b4acc7c03d7fade185a63", head.id().to_string());
     }
 }
