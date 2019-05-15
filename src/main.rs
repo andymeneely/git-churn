@@ -4,17 +4,17 @@ use self::git_churn::*;
 use git2::*;
 use std::path::Path;
 
-fn compute_churn(repo: &Repository, commit: &Commit, _interactive: bool) -> ChurnStats {
+fn compute_churn(repo: &Repository, commit: &Commit, _interactive: bool) -> Stats {
     let commit_tree = commit.tree().expect("Could not get tree");
-    let mut stats = ChurnStats::new();
+    let stats = Stats::new();
     for p in commit.parents() {
         let parent_tree = p.tree().expect("Failed find parent tree");
         let mut diff_opts = init_diff_opts();
         let diff = repo
             .diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), Some(&mut diff_opts))
             .expect("Failed to diff tree to tree");
-        let diff_stats = diff.stats().expect("Failed to compute diff_stats");
-        stats.set(diff_stats);
+        // let diff_stats = diff.stats().expect("Failed to compute diff_stats");
+        // stats.set(diff_stats);
 
         println!("--- DIFF ---");
         diff.foreach(&mut file_cb, None, None, Some(&mut line_cb))
