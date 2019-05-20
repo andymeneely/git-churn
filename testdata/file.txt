@@ -4,5 +4,4 @@ It has multiple lines...
 of code.
 
 This is part of multiple lines that are added
-Second added line here.
 Third added line here.
