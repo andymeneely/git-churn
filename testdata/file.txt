@@ -4,4 +4,6 @@ It has multiple lines...
 of code.
 
 This is part of multiple lines that are added
-Second added line here. (used to be Third)
+Second added line here, used to be Third. Modified by a different author.
+
+And another line inserted by a new author.
