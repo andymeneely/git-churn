@@ -1,6 +1,8 @@
 use git2::*;
 use std::collections::HashMap;
 
+mod metrics;
+
 pub struct Stats {
     log_str: String,
     commit_stats: HashMap<String, CommitStats>,
@@ -24,6 +26,7 @@ pub struct CommitPathStats {
 
 impl Stats {
     pub fn pretty_print(&self) {
+
 //         println!(
 //             r#"
 // Git Churn stats for {log_str}
@@ -61,4 +64,8 @@ impl Stats {
             committers: 0,
         }
     }
+}
+
+pub fn compute_churn(repo: &Repository, commit: &Commit, _interactive: bool) -> Stats {
+    return self::metrics::compute_churn(&repo, &commit, false);
 }
