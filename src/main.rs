@@ -9,7 +9,8 @@ fn main() {
         .expect("Failed revparse")
         .peel_to_commit()
         .expect("Could not peel to commit");
-    git_churn::compute_churn(&repo, &commit, false).pretty_print();
+    let stats = git_churn::compute_churn(&repo, &commit, false);
+    println!("{:#?}", stats);
 }
 
 #[cfg(test)]

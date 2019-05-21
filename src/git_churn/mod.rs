@@ -1,8 +1,10 @@
 use git2::*;
 use std::collections::HashMap;
+use std::path::Path;
 
 mod metrics;
 
+#[derive(Debug)]
 pub struct Stats {
     log_str: String,
     commit_stats: HashMap<String, CommitStats>,
@@ -11,12 +13,14 @@ pub struct Stats {
     committers: usize,
 }
 
+#[derive(Debug)]
 pub struct CommitStats {
     merge_commit: bool,
     commit_path_stats: HashMap<String, CommitPathStats>,
     authors_affected_by_other_deletions: Option<usize>,
 }
 
+#[derive(Debug)]
 pub struct CommitPathStats {
     insertions: usize,
     deletions: usize,
@@ -25,36 +29,6 @@ pub struct CommitPathStats {
 }
 
 impl Stats {
-    pub fn pretty_print(&self) {
-
-//         println!(
-//             r#"
-// Git Churn stats for {log_str}
-//   {commits:<3} commits
-//   {insertions:<3} insertions
-//   {deletions:<3} deletions
-//   {files_changed:<3} files_changed
-//   {authors:<3} authors
-//   {committers:<3} committers
-//   {merge_commits:<3} merge_commits
-//   {merges:<3} merges
-//   {self_deletions:?} self deletions
-//   {authors_affected_by_other_deletions:?} authors affected by other deletions
-// "#,
-//             log_str = self.log_str,
-//             commits = self.commits,
-//             insertions = self.insertions,
-//             deletions = self.deletions,
-//             files_changed = self.files_changed,
-//             authors = self.authors,
-//             committers = self.committers,
-//             merge_commits = self.merge_commits,
-//             merges = self.merges,
-//             self_deletions = self.self_deletions,
-//             authors_affected_by_other_deletions = self.authors_affected_by_other_deletions,
-//         );
-    }
-
     pub fn new() -> Stats {
         Stats {
             log_str: String::from(""),
@@ -62,6 +36,27 @@ impl Stats {
             files_changed: 0,
             authors: 0,
             committers: 0,
+        }
+    }
+}
+
+impl CommitStats {
+    pub fn new() -> CommitStats {
+        CommitStats {
+            merge_commit: false,
+            commit_path_stats: HashMap::new(),
+            authors_affected_by_other_deletions: None,
+        }
+    }
+}
+
+impl CommitPathStats {
+    pub fn new() -> CommitPathStats {
+        CommitPathStats {
+            insertions: 0,
+            deletions: 0,
+            self_deletions: None,
+            authors_affected_by_other_deletions: None,
         }
     }
 }
