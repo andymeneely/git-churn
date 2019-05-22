@@ -1,6 +1,5 @@
 use git2::*;
 use std::collections::HashMap;
-use std::path::Path;
 
 mod metrics;
 
@@ -20,7 +19,7 @@ pub struct CommitStats {
     authors_affected_by_other_deletions: Option<usize>,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct CommitPathStats {
     insertions: usize,
     deletions: usize,

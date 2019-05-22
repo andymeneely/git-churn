@@ -1,4 +1,5 @@
 use super::*;
+use std::convert::TryFrom;
 // use git2::*;
 // use std::path::Path;
 
@@ -9,61 +10,58 @@ pub fn compute_churn(repo: &Repository, commit: &Commit, _interactive: bool) -> 
     let mut commit_stats = CommitStats::new();
     commit_stats.merge_commit = commit.parents().count() > 1;
     for p in commit.parents() {
-
-        println!("--- DIFF ---");
         let parent_tree = p.tree().expect("Failed find parent tree");
         let mut diff_opts = init_diff_opts();
+        let mut blame_opts = init_blame_opts(commit.id());
         let diff = repo
             .diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), Some(&mut diff_opts))
             .expect("Failed to diff tree to tree");
-        // let diff_stats = diff.stats().expect("Failed to compute diff_stats");
-        // stats.set(diff_stats);
-        // let file_edits:HashMap<String, CommitPathStats> = HashMap::new();
-
-        let mut file_cb = |d: DiffDelta, _progress: f32| -> bool {
-            let path_str = path_from(d);
-            println!("Processing file: {}", path_str);
-            // commit_stats.commit_path_stats.insert(path_str, CommitPathStats::new());
-            return true;
-        };
 
         let mut line_cb = |d: DiffDelta, _o: Option<DiffHunk>, l: DiffLine| -> bool {
-            // let path_str = path_from(d);
-            //
-            // if !commit_stats.commit_path_stats.contains_key(&path_str) {
-            //     commit_stats.commit_path_stats.insert(path_from(d), CommitPathStats::new());
-            // }
-            // let mut cps = commit_stats.commit_path_stats.get_mut(&path_str).expect("Commit path stats not initialized");
-
-            // match l.origin() {
-            //     '+' => cps.insertions += 1,
-            //     '-' => cps.deletions += 1,
-            //     _ => (),
-            // }
-            print!(
-                "{}   {}",
-                l.origin(),
-                String::from_utf8(l.content().to_vec()).unwrap()
-            );
+            let path_str = new_path_str_from(&d);
+            let old_path = d
+                .old_file()
+                .path()
+                .expect("Could not find old file in commit.");
+            let blame = repo //SLOW! Redo the blame for every line?!?!
+                .blame_file(&old_path, Some(&mut blame_opts))
+                .expect("Failed to execute blame");
+            commit_stats
+                .commit_path_stats
+                .entry(path_str)
+                .and_modify(|cps| {
+                    // println!(
+                    //     "{}\t{}",
+                    //     blame
+                    //         .get_line(usize::try_from(l.old_lineno().unwrap()).unwrap())
+                    //         .unwrap()
+                    //         .orig_commit_id(),
+                    //     l.origin()
+                    // );
+                    match l.origin() {
+                        '+' => cps.insertions += 1,
+                        '-' => cps.deletions += 1,
+                        _ => (),
+                    }
+                })
+                .or_insert(CommitPathStats::new());
             true
         };
 
-        diff.foreach(&mut file_cb, None, None, Some(&mut line_cb))
+        diff.foreach(&mut |_, _| -> bool { true }, None, None, Some(&mut line_cb))
             .expect("Failed to iterate over diff");
 
-        println!("-- BLAME --");
-        let mut blame_opts = init_blame_opts(commit.id());
-        let path = Path::new("src/main.rs");
-        let blame = repo
-            .blame_file(&path, Some(&mut blame_opts))
-            .expect("Failed to execute blame");
-        for hunk in blame.iter() {
-            println!(
-                "Hunk {} Start line: {}",
-                hunk.orig_commit_id(),
-                hunk.final_start_line()
-            );
-        }
+        // let path = Path::new("src/main.rs");
+        // let blame = repo
+        //     .blame_file(&path, Some(&mut blame_opts))
+        //     .expect("Failed to execute blame");
+        // for hunk in blame.iter() {
+        // println!(
+        //     "Hunk {} Start line: {}",
+        //     hunk.orig_commit_id(),
+        //     hunk.final_start_line()
+        // );
+        // }
     }
     let mut stats = Stats::new();
     stats.commit_stats.insert(commit_str, commit_stats);
@@ -79,9 +77,9 @@ fn init_diff_opts() -> DiffOptions {
     return diff_opts;
 }
 
-fn init_blame_opts(head_id: Oid) -> BlameOptions {
+fn init_blame_opts(id: Oid) -> BlameOptions {
     let mut blame_opts = BlameOptions::new();
-    blame_opts.newest_commit(head_id);
+    blame_opts.newest_commit(id);
     blame_opts.track_copies_same_file(true);
     blame_opts.track_copies_same_commit_moves(false);
     blame_opts.track_copies_same_commit_copies(false);
@@ -89,10 +87,65 @@ fn init_blame_opts(head_id: Oid) -> BlameOptions {
     return blame_opts;
 }
 
-fn path_from(d: DiffDelta) -> String {
+fn new_path_str_from(d: &DiffDelta) -> String {
     let path = d
         .new_file()
         .path()
         .expect("Could not find new file in delta");
     return String::from(path.to_str().expect("Could not convert to path string."));
+}
+
+// fn old_path_from(d: &DiffDelta) -> Path {
+//     return d
+//         .old_file()
+//         .path()
+//         .expect("Could not find old file in commit.");
+// }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_goofing_stats() {
+        let repo = git2::Repository::open(".").unwrap();
+        let commit = repo
+            .revparse_single("test-goofing")
+            .unwrap()
+            .peel_to_commit()
+            .unwrap();
+        let stats = compute_churn(&repo, &commit, false);
+        let actual = stats
+            .commit_stats
+            .get("79caa008ba1f9d06b34b4acc7c03d7fade185a63")
+            .unwrap()
+            .commit_path_stats
+            .get("src/main.rs")
+            .unwrap();
+        println!("{:#?}", stats);
+        assert_eq!(10, actual.insertions);
+        assert_eq!(1, actual.deletions);
+    }
+
+    #[test]
+    fn test_file_origin() {
+        let repo = git2::Repository::open(".").unwrap();
+        let commit = repo
+            .revparse_single("test-file-origin")
+            .unwrap()
+            .peel_to_commit()
+            .unwrap();
+        let stats = compute_churn(&repo, &commit, false);
+        let actual = stats
+            .commit_stats
+            .get("6255cfe24e726c0d9222075879e7a2676ac1b5a1")
+            .unwrap()
+            .commit_path_stats
+            .get("testdata/file.txt")
+            .unwrap();
+        println!("{:#?}", stats);
+        assert_eq!(3, actual.insertions);
+        assert_eq!(0, actual.deletions);
+    }
+
 }
