@@ -10,7 +10,7 @@ struct ChurnArgs {
     commit: String,
 }
 
-fn churn(args: web::Query<ChurnArgs>) -> impl Responder {
+fn churn(args: web::Query<ChurnArgs>) -> HttpResponse {
     let repo = Repository::open(&args.repo).expect("Could not open repo");
     let commit = repo
         .revparse_single(&args.commit)
