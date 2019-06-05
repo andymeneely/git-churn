@@ -1,6 +1,5 @@
 use git2::*;
 use serde_derive::Serialize;
-use serde_json::json;
 use std::collections::HashMap;
 
 mod metrics;
