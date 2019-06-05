@@ -1,5 +1,4 @@
 use super::*;
-use std::convert::TryFrom;
 // use git2::*;
 // use std::path::Path;
 
@@ -12,20 +11,20 @@ pub fn compute_churn(repo: &Repository, commit: &Commit, _interactive: bool) -> 
     for p in commit.parents() {
         let parent_tree = p.tree().expect("Failed find parent tree");
         let mut diff_opts = init_diff_opts();
-        let mut blame_opts = init_blame_opts(commit.id());
+        // let mut blame_opts = init_blame_opts(commit.id());
         let diff = repo
             .diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), Some(&mut diff_opts))
             .expect("Failed to diff tree to tree");
 
         let mut line_cb = |d: DiffDelta, _o: Option<DiffHunk>, l: DiffLine| -> bool {
             let path_str = new_path_str_from(&d);
-            let old_path = d
-                .old_file()
-                .path()
-                .expect("Could not find old file in commit.");
-            let blame = repo //SLOW! Redo the blame for every line?!?!
-                .blame_file(&old_path, Some(&mut blame_opts))
-                .expect("Failed to execute blame");
+            // let old_path = d
+            //     .old_file()
+            //     .path()
+            //     .expect("Could not find old file in commit.");
+            // let blame = repo //SLOW! Redo the blame for every line?!?!
+            //     .blame_file(&old_path, Some(&mut blame_opts))
+            //     .expect("Failed to execute blame");
             commit_stats
                 .commit_path_stats
                 .entry(path_str)
@@ -77,15 +76,15 @@ fn init_diff_opts() -> DiffOptions {
     return diff_opts;
 }
 
-fn init_blame_opts(id: Oid) -> BlameOptions {
-    let mut blame_opts = BlameOptions::new();
-    blame_opts.newest_commit(id);
-    blame_opts.track_copies_same_file(true);
-    blame_opts.track_copies_same_commit_moves(false);
-    blame_opts.track_copies_same_commit_copies(false);
-    blame_opts.track_copies_any_commit_copies(false);
-    return blame_opts;
-}
+// fn init_blame_opts(id: Oid) -> BlameOptions {
+//     let mut blame_opts = BlameOptions::new();
+//     blame_opts.newest_commit(id);
+//     blame_opts.track_copies_same_file(true);
+//     blame_opts.track_copies_same_commit_moves(false);
+//     blame_opts.track_copies_same_commit_copies(false);
+//     blame_opts.track_copies_any_commit_copies(false);
+//     return blame_opts;
+// }
 
 fn new_path_str_from(d: &DiffDelta) -> String {
     let path = d

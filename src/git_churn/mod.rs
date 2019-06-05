@@ -1,9 +1,12 @@
 use git2::*;
 use std::collections::HashMap;
+use serde_json::json;
+use serde_derive::{Deserialize, Serialize};
+
 
 mod metrics;
 
-#[derive(Debug)]
+#[derive(Serialize,Debug)]
 pub struct Stats {
     log_str: String,
     commit_stats: HashMap<String, CommitStats>,
@@ -12,14 +15,14 @@ pub struct Stats {
     committers: usize,
 }
 
-#[derive(Debug)]
+#[derive(Serialize,Debug)]
 pub struct CommitStats {
     merge_commit: bool,
     commit_path_stats: HashMap<String, CommitPathStats>,
     authors_affected_by_other_deletions: Option<usize>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 pub struct CommitPathStats {
     insertions: usize,
     deletions: usize,
