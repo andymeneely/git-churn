@@ -1,8 +1,10 @@
 use git2::*;
+use std::*;
+use futures::executor::*;
 
 mod git_churn;
 
-fn main() {
+async fn async_main() {
     let repo = Repository::open(".").expect("Could not open repo");
     let commit = repo
         .revparse_single("test-first-test")
@@ -11,6 +13,12 @@ fn main() {
         .expect("Could not peel to commit");
     let stats = git_churn::compute_churn(&repo, &commit, false);
     println!("{:#?}", stats);
+}
+
+fn main() {
+    let future = async_main();
+    block_on(future);
+    println!("Done!!");
 }
 
 #[cfg(test)]
