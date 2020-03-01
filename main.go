@@ -2,19 +2,13 @@ package main
 
 import (
 	"fmt"
-	//"gopkg.in/src-d/go-git.v4/plumbing/object"
-
-	//. "gopkg.in/src-d/go-git.v4/_examples"
-	"github.com/andymeneely/git-churn/stringutils"
-	"github.com/google/go-cmp/cmp"
-	)
+	"github.com/andymeneely/git-churn/gitfuncs"
+	"os"
+)
 
 
 func main() {
-	fmt.Println("Namaste, world.")
-	fmt.Println(stringutils.ReverseRunes("!oG ,olleH"))
-	fmt.Println(cmp.Diff("Hello World", "Hello Go"))
-
-
+	dir,_:= os.Getwd()
+	fmt.Println(gitfuncs.LastCommit(dir))
+	fmt.Println(gitfuncs.Branches(dir))
 }
-
