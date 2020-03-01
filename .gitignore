@@ -2,3 +2,4 @@
 **/*.rs.bk
 repos/*
 !repos/.gitkeep
+.idea/
