@@ -2,3 +2,5 @@
 **/*.rs.bk
 repos/*
 !repos/.gitkeep
+.idea/
+git-churn
