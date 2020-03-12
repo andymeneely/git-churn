@@ -5,11 +5,18 @@ import (
 	. "github.com/andymeneely/git-churn/print"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
-func LastCommit(repoPath string) string {
+func LastCommit(repoUrl string) string {
+	// Clones the given repository in memory, creating the remote, the local
+	// branches and fetching the objects, exactly as:
+	Info("git clone " + repoUrl)
 
-	r, err := git.PlainOpen(repoPath)
+	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL: repoUrl,
+	})
+
 	CheckIfError(err)
 
 	// ... retrieving the branch being pointed by HEAD
@@ -24,17 +31,25 @@ func LastCommit(repoPath string) string {
 	return commit.Message
 }
 
-func Branches(repoPath string) []string {
-	r, err := git.PlainOpen(repoPath)
+func Branches(repoUrl string) []string {
+	// Clones the given repository in memory, creating the remote, the local
+	// branches and fetching the objects, exactly as:
+	Info("git clone " + repoUrl)
+
+	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL: repoUrl,
+	})
+
 	CheckIfError(err)
 
 	branchIttr, _ := r.Branches()
 
 	fmt.Println(branchIttr)
 	var branches []string
-	err = branchIttr.ForEach(func(ref *plumbing.Reference) error  {
-		fmt.Println(ref.Name().String())
-		branches = append(branches,ref.Name().String())
+	//TODO: Check why it is only getting the master branch
+	err = branchIttr.ForEach(func(ref *plumbing.Reference) error {
+		//fmt.Println(ref.Name().String())
+		branches = append(branches, ref.Name().String())
 		return nil
 	})
 
