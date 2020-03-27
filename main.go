@@ -15,9 +15,9 @@ func main() {
 	//	fmt.Println(tag)
 	//}
 
-	diffmatrics := matrics.CalculateDiffMatrics("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
-	fmt.Println(fmt.Sprintf("%v", diffmatrics))
-	out, err := json.Marshal(diffmatrics)
+	diffmetrics := metrics.CalculateDiffMetrics("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
+	fmt.Println(fmt.Sprintf("%v", diffmetrics))
+	out, err := json.Marshal(diffmetrics)
 	if err != nil {
 		panic(err)
 	}

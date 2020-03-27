@@ -1,10 +1,10 @@
-package matrics
+package metrics
 
 import (
 	"github.com/andymeneely/git-churn/gitfuncs"
 )
 
-type DiffMatrics struct {
+type DiffMetrics struct {
 	File        string
 	Insertions  int
 	Deletions   int
@@ -14,9 +14,9 @@ type DiffMatrics struct {
 	DeleteFile  bool
 }
 
-func CalculateDiffMatrics(repoUrl, commitHash, filePath string) *DiffMatrics {
-	diffMatrics := new(DiffMatrics)
-	diffMatrics.File = filePath
+func CalculateDiffMetrics(repoUrl, commitHash, filePath string) *DiffMetrics {
+	diffMetrics := new(DiffMetrics)
+	diffMetrics.File = filePath
 	changes, tree, parentTree := gitfuncs.CommitDiff(repoUrl, commitHash)
 	patch, _ := changes.Patch()
 	//fmt.Println(changes)
@@ -26,22 +26,22 @@ func CalculateDiffMatrics(repoUrl, commitHash, filePath string) *DiffMatrics {
 
 	for _, value := range diffStats {
 		if value.Name == filePath {
-			diffMatrics.Insertions = value.Addition
-			diffMatrics.Deletions = value.Deletion
+			diffMetrics.Insertions = value.Addition
+			diffMetrics.Deletions = value.Deletion
 		}
 	}
 
-	diffMatrics.LinesBefore = gitfuncs.FileLOCFromTree(parentTree, filePath)
-	diffMatrics.LinesAfter = gitfuncs.FileLOCFromTree(tree, filePath)
+	diffMetrics.LinesBefore = gitfuncs.FileLOCFromTree(parentTree, filePath)
+	diffMetrics.LinesAfter = gitfuncs.FileLOCFromTree(tree, filePath)
 
-	if diffMatrics.LinesBefore == 0 && diffMatrics.LinesAfter != 0 {
-		diffMatrics.NewFile = true
+	if diffMetrics.LinesBefore == 0 && diffMetrics.LinesAfter != 0 {
+		diffMetrics.NewFile = true
 	}
 
-	if diffMatrics.LinesBefore != 0 && diffMatrics.LinesAfter == 0 {
-		diffMatrics.DeleteFile = true
+	if diffMetrics.LinesBefore != 0 && diffMetrics.LinesAfter == 0 {
+		diffMetrics.DeleteFile = true
 	}
 
-	return diffMatrics
+	return diffMetrics
 
 }
