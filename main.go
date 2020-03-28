@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andymeneely/git-churn/matrics"
+	"github.com/andymeneely/git-churn/print"
 )
 
 func main() {
@@ -15,7 +16,8 @@ func main() {
 	//	fmt.Println(tag)
 	//}
 
-	diffmetrics := metrics.CalculateDiffMetrics("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
+	diffmetrics, err := metrics.CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
+	print.CheckIfError(err)
 	fmt.Println(fmt.Sprintf("%v", diffmetrics))
 	out, err := json.Marshal(diffmetrics)
 	if err != nil {

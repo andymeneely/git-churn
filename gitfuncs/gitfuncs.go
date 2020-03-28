@@ -143,6 +143,22 @@ func FileLOCFromTree(tree *object.Tree, filePath string) int {
 	return loc
 }
 
+func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
+	loc := 0
+	tree.Files().ForEach(func(f *object.File) error {
+		if f.Name == filePath {
+			lines, _ := f.Lines()
+			for _, line := range lines {
+				if line != "" {
+					loc += 1
+				}
+			}
+		}
+		return nil
+	})
+	return loc
+}
+
 func FilesIttr(repoUrl string) *object.FileIter {
 	//REF: https://github.com/src-d/go-git/blob/master/_examples/showcase/main.go
 	//Clones the given repository in memory, creating the remote, the local
