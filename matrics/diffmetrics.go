@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"errors"
-	"fmt"
 	"github.com/andymeneely/git-churn/gitfuncs"
 	"strings"
 )
@@ -69,7 +68,6 @@ func CalculateDiffMetricsWhitespaceExcluded(repoUrl, commitHash, filePath string
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		fmt.Println(line)
 
 		if strings.HasPrefix(line, "+") && line != "+" {
 			insertions += 1
