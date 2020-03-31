@@ -3,8 +3,11 @@
 A fast tool for collecting code churn metrics from git repositories.
 
 # Installation
+You will need Go language installed on your system. Ref: https://golang.org/doc/install
 
 ```
+  $ git clone github.com/andymeneely/git-churn
+  $ cd git-churn
   $ go install github.com/andymeneely/git-churn
   $ go build
  ```
@@ -16,7 +19,7 @@ In general, `git churn` works much like `git log`, with some additional options.
 Show basic churn metrics for a specific commit and file:
 ```
   $ git-churn --help
-  $ git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt
+  $ git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt --whitespace=false
 
 ```
 
@@ -27,6 +30,7 @@ Flags:
   -f, --filepath string   File path for the file on which the commit metrics has to be computed
   -h, --help              help for git-churn
   -r, --repo string       Git Repository URL on which the churn metrics has to be computed
+  -w, --whitespace        Excludes whitespaces while calculating the churn metrics is set to false (default true)
 ```
 
 # Metrics
