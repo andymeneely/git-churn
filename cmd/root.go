@@ -17,7 +17,6 @@ func init() {
 	pf.StringVarP(&commit, "commit", "c", "", "Commit hash for which the metrics has to be computed")
 	print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
 	pf.StringVarP(&filepath, "filepath", "f", "", "File path for the file on which the commit metrics has to be computed")
-	print.CheckIfError(cobra.MarkFlagRequired(pf, "filepath"))
 	pf.BoolVarP(&whitespace, "whitespace", "w", true, "Excludes whitespaces while calculating the churn metrics is set to false")
 }
 
@@ -34,12 +33,20 @@ var (
 		Long: `git-churn gives the churn metrics like insertions, deletions, etc for the given commit hash in the repo specified.
                 Complete documentation is available at https://github.com/andymeneely/git-churn`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var diffmetrics *metrics.DiffMetrics
+			var diffmetrics interface{}
 			var err error
 			if whitespace {
-				diffmetrics = metrics.CalculateDiffMetricsWithWhitespace(repo, commit, filepath)
+				if filepath != "" {
+					diffmetrics = metrics.CalculateDiffMetricsWithWhitespace(repo, commit, filepath)
+				} else {
+					diffmetrics = metrics.AggrDiffMetricsWithWhitespace(repo, commit)
+				}
 			} else {
-				diffmetrics, err = metrics.CalculateDiffMetricsWhitespaceExcluded(repo, commit, filepath)
+				if filepath != "" {
+					diffmetrics, err = metrics.CalculateDiffMetricsWhitespaceExcluded(repo, commit, filepath)
+				} else {
+					diffmetrics, err = metrics.AggrDiffMetricsWhitespaceExcluded(repo, commit)
+				}
 				print.CheckIfError(err)
 			}
 			//fmt.Println(fmt.Sprintf("%v", diffmetrics))

@@ -143,6 +143,18 @@ func FileLOCFromTree(tree *object.Tree, filePath string) int {
 	return loc
 }
 
+func LOCFilesFromTree(tree *object.Tree) (int, []string) {
+	loc := 0
+	var files []string
+	tree.Files().ForEach(func(f *object.File) error {
+		lines, _ := f.Lines()
+		loc += len(lines)
+		files = append(files, f.Name)
+		return nil
+	})
+	return loc, files
+}
+
 func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
 	loc := 0
 	tree.Files().ForEach(func(f *object.File) error {
@@ -157,6 +169,21 @@ func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
 		return nil
 	})
 	return loc
+}
+func LOCFilesFromTreeWhitespaceExcluded(tree *object.Tree) (int, []string) {
+	loc := 0
+	var files []string
+	tree.Files().ForEach(func(f *object.File) error {
+		lines, _ := f.Lines()
+		for _, line := range lines {
+			if line != "" {
+				loc += 1
+			}
+		}
+		files = append(files, f.Name)
+		return nil
+	})
+	return loc, files
 }
 
 func FilesIttr(repoUrl string) *object.FileIter {
