@@ -3,6 +3,7 @@ package metrics
 import (
 	"errors"
 	"github.com/andymeneely/git-churn/gitfuncs"
+	"github.com/andymeneely/git-churn/helper"
 	"strings"
 )
 
@@ -26,6 +27,7 @@ type AggrDiffMetrics struct {
 }
 
 func CalculateDiffMetricsWithWhitespace(repoUrl, commitHash, filePath string) *FileDiffMetrics {
+	defer helper.Duration(helper.Track("CalculateDiffMetricsWithWhitespace"))
 	diffMetrics := new(FileDiffMetrics)
 	diffMetrics.File = filePath
 	changes, tree, parentTree := gitfuncs.CommitDiff(repoUrl, commitHash)
@@ -59,6 +61,7 @@ func CalculateDiffMetricsWithWhitespace(repoUrl, commitHash, filePath string) *F
 }
 
 func CalculateDiffMetricsWhitespaceExcluded(repoUrl, commitHash, filePath string) (*FileDiffMetrics, error) {
+	defer helper.Duration(helper.Track("CalculateDiffMetricsWhitespaceExcluded"))
 	diffMetrics := new(FileDiffMetrics)
 	diffMetrics.File = filePath
 	changes, tree, parentTree := gitfuncs.CommitDiff(repoUrl, commitHash)
@@ -104,7 +107,7 @@ func CalculateDiffMetricsWhitespaceExcluded(repoUrl, commitHash, filePath string
 }
 
 func AggrDiffMetricsWithWhitespace(repoUrl, commitHash string) *AggrDiffMetrics {
-
+	defer helper.Duration(helper.Track("AggrDiffMetricsWithWhitespace"))
 	diffMetrics := new(AggrDiffMetrics)
 	changes, tree, parentTree := gitfuncs.CommitDiff(repoUrl, commitHash)
 	patch, _ := changes.Patch()
@@ -124,8 +127,14 @@ func AggrDiffMetricsWithWhitespace(repoUrl, commitHash string) *AggrDiffMetrics 
 
 	var beforeFiles []string
 	var afterFiles []string
-	diffMetrics.LinesBefore, beforeFiles = gitfuncs.LOCFilesFromTree(parentTree)
-	diffMetrics.LinesAfter, afterFiles = gitfuncs.LOCFilesFromTree(tree)
+	beforeCh := make(chan func() (int, []string))
+	go gitfuncs.LOCFilesFromTree(parentTree, beforeCh)
+
+	afterCh := make(chan func() (int, []string))
+	go gitfuncs.LOCFilesFromTree(tree, afterCh)
+	diffMetrics.LinesBefore, beforeFiles = (<-beforeCh)()
+	diffMetrics.LinesAfter, afterFiles = (<-afterCh)()
+	//go diffMetrics.LinesAfter, afterFiles = gitfuncs.LOCFilesFromTree(tree, nil)
 
 	setFilesCounts(beforeFiles, afterFiles, diffMetrics)
 	return diffMetrics
@@ -166,6 +175,7 @@ func setFilesCounts(beforeFiles []string, afterFiles []string, diffMetrics *Aggr
 }
 
 func AggrDiffMetricsWhitespaceExcluded(repoUrl, commitHash string) (*AggrDiffMetrics, error) {
+	defer helper.Duration(helper.Track("AggrDiffMetricsWhitespaceExcluded"))
 	diffMetrics := new(AggrDiffMetrics)
 	changes, tree, parentTree := gitfuncs.CommitDiff(repoUrl, commitHash)
 	patch, _ := changes.Patch()

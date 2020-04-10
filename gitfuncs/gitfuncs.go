@@ -143,7 +143,7 @@ func FileLOCFromTree(tree *object.Tree, filePath string) int {
 	return loc
 }
 
-func LOCFilesFromTree(tree *object.Tree) (int, []string) {
+func LOCFilesFromTree(tree *object.Tree, c chan func() (int, []string)) {
 	loc := 0
 	var files []string
 	tree.Files().ForEach(func(f *object.File) error {
@@ -152,7 +152,7 @@ func LOCFilesFromTree(tree *object.Tree) (int, []string) {
 		files = append(files, f.Name)
 		return nil
 	})
-	return loc, files
+	c <- func() (int, []string) { return loc, files }
 }
 
 func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
