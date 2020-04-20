@@ -1,6 +1,7 @@
 package gitfuncs
 
 import (
+	"fmt"
 	//"fmt"
 	. "github.com/andymeneely/git-churn/print"
 	"gopkg.in/src-d/go-billy.v4/memfs"
@@ -131,6 +132,8 @@ func FileLOC(repoUrl, filePath string) int {
 	return loc
 }
 
+//Gets the total number of lines of code in a given file in the specified commit tree
+//Whitespace included
 func FileLOCFromTree(tree *object.Tree, filePath string) int {
 	loc := 0
 	tree.Files().ForEach(func(f *object.File) error {
@@ -143,7 +146,9 @@ func FileLOCFromTree(tree *object.Tree, filePath string) int {
 	return loc
 }
 
-func LOCFilesFromTree(tree *object.Tree) (int, []string) {
+//Returns the total lines of code from all the files in the given commit tree and list of fine names
+// Whitespace included
+func LOCFilesFromTree(tree *object.Tree, c chan func() (int, []string)) {
 	loc := 0
 	var files []string
 	tree.Files().ForEach(func(f *object.File) error {
@@ -152,9 +157,11 @@ func LOCFilesFromTree(tree *object.Tree) (int, []string) {
 		files = append(files, f.Name)
 		return nil
 	})
-	return loc, files
+	c <- func() (int, []string) { return loc, files }
 }
 
+//Gets the total number of lines of code in a given file in the specified commit tree
+//Whitespace excluded
 func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
 	loc := 0
 	tree.Files().ForEach(func(f *object.File) error {
@@ -170,6 +177,9 @@ func FileLOCFromTreeWhitespaceExcluded(tree *object.Tree, filePath string) int {
 	})
 	return loc
 }
+
+//Returns the total lines of code from all the files in the given commit tree and list of fine names
+//Whitespace excluded
 func LOCFilesFromTreeWhitespaceExcluded(tree *object.Tree) (int, []string) {
 	loc := 0
 	var files []string
@@ -215,6 +225,7 @@ func FilesIttr(repoUrl string) *object.FileIter {
 	return tree.Files()
 }
 
+// Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
 func CommitDiff(repoUrl, commitId string) (*object.Changes, *object.Tree, *object.Tree) {
 	repo := Checkout(repoUrl, commitId)
 
@@ -223,6 +234,10 @@ func CommitDiff(repoUrl, commitId string) (*object.Changes, *object.Tree, *objec
 
 	commitObj, err := repo.CommitObject(head.Hash())
 	CheckIfError(err)
+	//fmt.Println(commitObj.Author.Name)
+	//fmt.Println(commitObj.Author.Email)
+	//fmt.Println(commitObj.Author.When)
+	//fmt.Println(commitObj.Author.String())
 
 	parentCommitObj, err := commitObj.Parent(0)
 	CheckIfError(err)
@@ -242,4 +257,20 @@ func CommitDiff(repoUrl, commitId string) (*object.Changes, *object.Tree, *objec
 	//fmt.Println(changes)
 	//fmt.Println(changes.Patch())
 	return &changes, tree, parentTree
+}
+
+func RevisionCommits(path, revision string) {
+
+	// We instantiate a new repository targeting the given path (the .git folder)
+	r := Checkout(path, "99992110e402f26ca9162f43c0e5a97b1278068a")
+
+	// Resolve revision into a sha1 commit, only some revisions are resolved
+	// look at the doc to get more details
+	Info("git rev-parse %s", revision)
+
+	h, err := r.ResolveRevision(plumbing.Revision(revision))
+
+	CheckIfError(err)
+
+	fmt.Println(h.String())
 }

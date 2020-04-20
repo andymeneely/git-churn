@@ -20,7 +20,6 @@ Show basic churn metrics for a specific commit and file:
 ```
   $ git-churn --help
   $ git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt --whitespace=false
-  $ git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4  --whitespace=false
 ```
 
 To show the aggregated churn metrics for a specific commit:
