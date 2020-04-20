@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"github.com/stretchr/testify/assert"
+	"runtime"
 	"testing"
 )
 
@@ -134,6 +135,8 @@ func TestFileDeleteWhitespaceExcluded(t *testing.T) {
 }
 
 func TestAggrDiffMetricsWithWhitespace(t *testing.T) {
+	numcpu := runtime.NumCPU()
+	runtime.GOMAXPROCS(numcpu)
 	diffmetrics := AggrDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
 	assert := assert.New(t)
 	assert.Equal(17, diffmetrics.FilesCount)
