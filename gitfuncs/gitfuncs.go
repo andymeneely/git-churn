@@ -2,6 +2,9 @@ package gitfuncs
 
 import (
 	"fmt"
+	"gopkg.in/src-d/go-git.v4/plumbing/revlist"
+	"sort"
+
 	//"fmt"
 	. "github.com/andymeneely/git-churn/print"
 	"gopkg.in/src-d/go-billy.v4/memfs"
@@ -273,4 +276,31 @@ func RevisionCommits(path, revision string) {
 	CheckIfError(err)
 
 	fmt.Println(h.String())
+}
+
+// RevList is native implementation of git rev-list command
+func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit, error) {
+
+	commits := make([]*object.Commit, 0)
+	ref1hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
+	if err != nil {
+		return nil, err
+	}
+	ref2hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(beginCommit)}, ref1hist)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, h := range ref2hist {
+		c, err := r.CommitObject(h)
+		if err != nil {
+			continue
+		}
+		commits = append(commits, c)
+	}
+	//  sorts by datetime
+	sort.Slice(commits, func(i, j int) bool { return commits[i].Committer.When.Unix() > commits[j].Committer.When.Unix() })
+	//fmt.Println(commits)
+
+	return commits, err
 }
