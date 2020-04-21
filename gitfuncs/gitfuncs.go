@@ -2,6 +2,7 @@ package gitfuncs
 
 import (
 	"fmt"
+	"github.com/andymeneely/git-churn/helper"
 	"gopkg.in/src-d/go-git.v4/plumbing/revlist"
 	"sort"
 
@@ -280,6 +281,7 @@ func RevisionCommits(path, revision string) {
 
 // RevList is native implementation of git rev-list command
 func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit, error) {
+	//TODO: should I reverse the begin and end?
 
 	commits := make([]*object.Commit, 0)
 	ref1hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
@@ -303,4 +305,28 @@ func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit
 	//fmt.Println(commits)
 
 	return commits, err
+}
+
+func GetDistinctAuthorsEMailIds(r *git.Repository, beginCommit, endCommit, filePath string) ([]string, error) {
+
+	commits, err := RevList(r, beginCommit, endCommit)
+	if err != nil {
+		return nil, err
+	}
+
+	var authors []string
+	for _, commit := range commits {
+		tree, err := commit.Tree()
+		if err != nil {
+			return nil, err
+		}
+		_, err = tree.File(filePath)
+		if err != nil {
+			continue
+		}
+		authors = append(authors, commit.Author.Email)
+	}
+	authors = helper.UniqueElements(authors)
+	return authors, err
+
 }
