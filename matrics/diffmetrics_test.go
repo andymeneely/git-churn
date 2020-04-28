@@ -1,13 +1,15 @@
 package metrics
 
 import (
+	"github.com/andymeneely/git-churn/gitfuncs"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
 )
 
 func TestFileOrigin(t *testing.T) {
-	diffmetrics := CalculateDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "6255cfe24e726c0d9222075879e7a2676ac1b5a1", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "6255cfe24e726c0d9222075879e7a2676ac1b5a1")
+	diffmetrics := CalculateDiffMetricsWithWhitespace(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
 	assert.Equal(4, diffmetrics.Insertions)
@@ -19,7 +21,8 @@ func TestFileOrigin(t *testing.T) {
 }
 
 func TestFileAddOnly(t *testing.T) {
-	diffmetrics := CalculateDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "f33d22b9b10a084ef494df3c9780d30c41d3f54d", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "f33d22b9b10a084ef494df3c9780d30c41d3f54d")
+	diffmetrics := CalculateDiffMetricsWithWhitespace(repo, "testdata/file.txt")
 	//got := fmt.Sprintf("%v", diffmetrics)
 	//expected := "&{testdata/file.txt 4 0 4 8 false false}"
 	//assert.Equal(t, expected, got)
@@ -34,7 +37,8 @@ func TestFileAddOnly(t *testing.T) {
 }
 
 func TestFileDeletesOnly(t *testing.T) {
-	diffmetrics := CalculateDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "09e4b342693bf31bfb7cead1eb9b9fd59e3eef87", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "09e4b342693bf31bfb7cead1eb9b9fd59e3eef87")
+	diffmetrics := CalculateDiffMetricsWithWhitespace(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
 	assert.Equal(0, diffmetrics.Insertions)
@@ -46,7 +50,8 @@ func TestFileDeletesOnly(t *testing.T) {
 }
 
 func TestFileChangingLines(t *testing.T) {
-	diffmetrics := CalculateDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4")
+	diffmetrics := CalculateDiffMetricsWithWhitespace(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
 	assert.Equal(1, diffmetrics.Insertions)
@@ -58,7 +63,8 @@ func TestFileChangingLines(t *testing.T) {
 }
 
 func TestFileDelete(t *testing.T) {
-	diffmetrics := CalculateDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	diffmetrics := CalculateDiffMetricsWithWhitespace(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
 	assert.Equal(0, diffmetrics.Insertions)
@@ -70,7 +76,8 @@ func TestFileDelete(t *testing.T) {
 }
 
 func TestFileOriginWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "6255cfe24e726c0d9222075879e7a2676ac1b5a1", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "6255cfe24e726c0d9222075879e7a2676ac1b5a1")
+	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
@@ -83,7 +90,8 @@ func TestFileOriginWhitespaceExcluded(t *testing.T) {
 }
 
 func TestFileAddOnlyWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "f33d22b9b10a084ef494df3c9780d30c41d3f54d", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "f33d22b9b10a084ef494df3c9780d30c41d3f54d")
+	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
@@ -96,7 +104,8 @@ func TestFileAddOnlyWhitespaceExcluded(t *testing.T) {
 }
 
 func TestFileDeletesOnlyWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "09e4b342693bf31bfb7cead1eb9b9fd59e3eef87", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "09e4b342693bf31bfb7cead1eb9b9fd59e3eef87")
+	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
@@ -109,7 +118,8 @@ func TestFileDeletesOnlyWhitespaceExcluded(t *testing.T) {
 }
 
 func TestFileChangingLinesWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "00da33207bbb17a149d99301012006fbd86c80e4")
+	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
@@ -122,7 +132,8 @@ func TestFileChangingLinesWhitespaceExcluded(t *testing.T) {
 }
 
 func TestFileDeleteWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc", "testdata/file.txt")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	diffmetrics, err := CalculateDiffMetricsWhitespaceExcluded(repo, "testdata/file.txt")
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal("testdata/file.txt", diffmetrics.File)
@@ -137,7 +148,8 @@ func TestFileDeleteWhitespaceExcluded(t *testing.T) {
 func TestAggrDiffMetricsWithWhitespace(t *testing.T) {
 	numcpu := runtime.NumCPU()
 	runtime.GOMAXPROCS(numcpu)
-	diffmetrics := AggrDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
+	diffmetrics := AggrDiffMetricsWithWhitespace(repo)
 	assert := assert.New(t)
 	assert.Equal(17, diffmetrics.FilesCount)
 	assert.Equal(225, diffmetrics.Insertions)
@@ -149,7 +161,8 @@ func TestAggrDiffMetricsWithWhitespace(t *testing.T) {
 }
 
 func TestAggrDiffMetricsWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := AggrDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
+	diffmetrics, err := AggrDiffMetricsWhitespaceExcluded(repo)
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal(17, diffmetrics.FilesCount)
@@ -162,7 +175,8 @@ func TestAggrDiffMetricsWhitespaceExcluded(t *testing.T) {
 }
 
 func TestAggrFileDelete(t *testing.T) {
-	diffmetrics := AggrDiffMetricsWithWhitespace("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	diffmetrics := AggrDiffMetricsWithWhitespace(repo)
 	assert := assert.New(t)
 	assert.Equal(5, diffmetrics.FilesCount)
 	assert.Equal(0, diffmetrics.Insertions)
@@ -175,7 +189,8 @@ func TestAggrFileDelete(t *testing.T) {
 }
 
 func TestAggrFileDeleteWhitespaceExcluded(t *testing.T) {
-	diffmetrics, err := AggrDiffMetricsWhitespaceExcluded("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	diffmetrics, err := AggrDiffMetricsWhitespaceExcluded(repo)
 	assert := assert.New(t)
 	assert.Nil(err)
 	assert.Equal(5, diffmetrics.FilesCount)
