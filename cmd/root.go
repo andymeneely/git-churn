@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/andymeneely/git-churn/gitfuncs"
 	metrics "github.com/andymeneely/git-churn/matrics"
 	"github.com/andymeneely/git-churn/print"
 	"github.com/spf13/cobra"
@@ -12,9 +13,9 @@ import (
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	pf := rootCmd.PersistentFlags()
-	pf.StringVarP(&repo, "repo", "r", "", "Git Repository URL on which the churn metrics has to be computed")
+	pf.StringVarP(&repoUrl, "repo", "r", "", "Git Repository URL on which the churn metrics has to be computed")
 	print.CheckIfError(cobra.MarkFlagRequired(pf, "repo"))
-	pf.StringVarP(&commit, "commit", "c", "", "Commit hash for which the metrics has to be computed")
+	pf.StringVarP(&commitId, "commit", "c", "", "Commit hash for which the metrics has to be computed")
 	print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
 	pf.StringVarP(&filepath, "filepath", "f", "", "File path for the file on which the commit metrics has to be computed")
 	pf.BoolVarP(&whitespace, "whitespace", "w", true, "Excludes whitespaces while calculating the churn metrics is set to false")
@@ -22,8 +23,8 @@ func init() {
 
 var (
 	//TODO: Add whitespace exclusion bool flag
-	repo       string
-	commit     string
+	repoUrl    string
+	commitId   string
 	filepath   string
 	whitespace bool
 
@@ -33,24 +34,25 @@ var (
 		Long: `git-churn gives the churn metrics like insertions, deletions, etc for the given commit hash in the repo specified.
                 Complete documentation is available at https://github.com/andymeneely/git-churn`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var diffmetrics interface{}
+			var churnMetrics interface{}
 			var err error
+			repo := gitfuncs.Checkout(repoUrl, commitId)
 			if whitespace {
 				if filepath != "" {
-					diffmetrics = metrics.CalculateDiffMetricsWithWhitespace(repo, commit, filepath)
+					churnMetrics = metrics.GetChurnMetrics(repo, filepath)
 				} else {
-					diffmetrics = metrics.AggrDiffMetricsWithWhitespace(repo, commit)
+					churnMetrics = metrics.AggrDiffMetricsWithWhitespace(repo)
 				}
 			} else {
 				if filepath != "" {
-					diffmetrics, err = metrics.CalculateDiffMetricsWhitespaceExcluded(repo, commit, filepath)
+					churnMetrics, err = metrics.CalculateDiffMetricsWhitespaceExcluded(repo, filepath)
 				} else {
-					diffmetrics, err = metrics.AggrDiffMetricsWhitespaceExcluded(repo, commit)
+					churnMetrics, err = metrics.AggrDiffMetricsWhitespaceExcluded(repo)
 				}
 				print.CheckIfError(err)
 			}
-			//fmt.Println(fmt.Sprintf("%v", diffmetrics))
-			out, err := json.Marshal(diffmetrics)
+			//fmt.Println(fmt.Sprintf("%v", churnMetrics))
+			out, err := json.Marshal(churnMetrics)
 			if err != nil {
 				panic(err)
 			}

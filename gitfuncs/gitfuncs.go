@@ -1,18 +1,18 @@
 package gitfuncs
 
 import (
-	"fmt"
 	"github.com/andymeneely/git-churn/helper"
 	"gopkg.in/src-d/go-git.v4/plumbing/revlist"
 	"sort"
+	"strings"
 
-	//"fmt"
 	. "github.com/andymeneely/git-churn/print"
 	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
+	//"github.com/go-git/go-git/v5"
 )
 
 func LastCommit(repoUrl string) string {
@@ -96,12 +96,6 @@ func Checkout(repoUrl, hash string) *git.Repository {
 	})
 
 	CheckIfError(err)
-	// ... retrieving the commit being pointed by HEAD
-
-	Info("git show-ref --head HEAD")
-	//ref, err := r.Head()
-	//CheckIfError(err)
-	//fmt.Println(ref.Hash())
 
 	w, err := r.Worktree()
 	CheckIfError(err)
@@ -112,14 +106,6 @@ func Checkout(repoUrl, hash string) *git.Repository {
 		Hash: plumbing.NewHash(hash),
 	})
 	CheckIfError(err)
-
-	// ... retrieving the commit being pointed by HEAD, it shows that the
-	// repository is pointing to the giving commit in detached mode
-	Info("git show-ref --head HEAD")
-	//ref, err = r.Head()
-	//CheckIfError(err)
-	//fmt.Println(ref.Hash())
-
 	return r
 }
 
@@ -230,8 +216,7 @@ func FilesIttr(repoUrl string) *object.FileIter {
 }
 
 // Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
-func CommitDiff(repoUrl, commitId string) (*object.Changes, *object.Tree, *object.Tree) {
-	repo := Checkout(repoUrl, commitId)
+func CommitDiff(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tree) {
 
 	head, err := repo.Head()
 	CheckIfError(err)
@@ -260,13 +245,42 @@ func CommitDiff(repoUrl, commitId string) (*object.Changes, *object.Tree, *objec
 
 	//fmt.Println(changes)
 	//fmt.Println(changes.Patch())
+
 	return &changes, tree, parentTree
 }
 
-func RevisionCommits(path, revision string) {
+func DeletedLineNumbers(repo *git.Repository, ) (map[string][]int, string) {
+	changes, _, parentTree := CommitDiff(repo)
+	patch, _ := changes.Patch()
+	fileDeletedLinesMap := make(map[string][]int)
+	for _, patch := range patch.FilePatches() {
+		//fmt.Println(patch)
+		lineCounter := 0
+		var deletedLines []int
+		for _, chunk := range patch.Chunks() {
+			if chunk.Type() == 0 {
+				lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+			}
+			if chunk.Type() == 2 {
+				patchLen := len(strings.Split(chunk.Content(), "\n")) - 1
+				for i := 1; i <= patchLen; i++ {
+					deletedLines = append(deletedLines, lineCounter+i)
+				}
+				lineCounter += patchLen
+			}
+		}
+		fromFile, toFile := patch.Files()
+		if nil == fromFile {
+			fileDeletedLinesMap[toFile.Path()] = deletedLines
+		} else {
+			fileDeletedLinesMap[fromFile.Path()] = deletedLines
+		}
+		//fmt.Println(deletedLines)
+	}
+	return fileDeletedLinesMap, parentTree.Hash.String()
+}
 
-	// We instantiate a new repository targeting the given path (the .git folder)
-	r := Checkout(path, "99992110e402f26ca9162f43c0e5a97b1278068a")
+func RevisionCommits(r *git.Repository, revision string) *plumbing.Hash {
 
 	// Resolve revision into a sha1 commit, only some revisions are resolved
 	// look at the doc to get more details
@@ -276,7 +290,8 @@ func RevisionCommits(path, revision string) {
 
 	CheckIfError(err)
 
-	fmt.Println(h.String())
+	//fmt.Println(h.String())
+	return h
 }
 
 // RevList is native implementation of git rev-list command
@@ -328,5 +343,19 @@ func GetDistinctAuthorsEMailIds(r *git.Repository, beginCommit, endCommit, fileP
 	}
 	authors = helper.UniqueElements(authors)
 	return authors, err
+
+}
+
+func Blame(repo *git.Repository, hash *plumbing.Hash, path string) (*git.BlameResult, error) {
+
+	commitObj, err := repo.CommitObject(*hash)
+	CheckIfError(err)
+
+	blameResult, err := git.Blame(commitObj, path)
+
+	//fmt.Println(blameResult)
+	//fmt.Println(blameResult.Lines)
+
+	return blameResult, err
 
 }
