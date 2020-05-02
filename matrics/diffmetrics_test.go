@@ -201,3 +201,11 @@ func TestAggrFileDeleteWhitespaceExcluded(t *testing.T) {
 	assert.Equal(0, diffmetrics.NewFiles)
 	assert.Equal(5, diffmetrics.DeletedFiles)
 }
+
+func BenchmarkAggrFileDelete(b *testing.B) {
+	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "28b27020585be592df042c61ddab562665ce84cc")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		AggrDiffMetricsWithWhitespace(repo)
+	}
+}

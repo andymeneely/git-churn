@@ -1,0 +1,29 @@
+name: Performance benchmarks
+on:
+  push:
+    branches:
+      - master
+jobs:
+  benchmark:
+    name: Performance benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+      - name: Run benchmark
+        run: go test -bench=. ./... | tee output.txt
+      - name: Download previous benchmark data, if exists
+        uses: actions/cache@v1
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
+      - name: Store benchmark result
+        uses: rhysd/github-action-benchmark@v1
+        with:
+          tool: 'go'
+           # Where the output from the benchmark tool is stored
+          output-file-path: output.txt
+          # Where the previous data file is stored
+          external-data-json-path: ./cache/benchmark-data.json
+          # Workflow will fail when an alert happens
+          fail-on-alert: true

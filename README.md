@@ -75,3 +75,16 @@ Flags:
 * Number of authors
 * Number of committers
 * Inn
+
+# Testing
+
+To run automated tests:
+
+```
+$ go test ./...
+```
+
+To run benchmarks:
+
+```
+$ go test -bench=. ./...
