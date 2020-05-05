@@ -18,10 +18,26 @@ type ChurnMetrics struct {
 	FileDiffMetrics FileDiffMetrics
 }
 
-func GetChurnMetrics(repo *git.Repository, filePath string) *ChurnMetrics {
-	defer helper.Duration(helper.Track("GetChurnMetrics"))
+func GetChurnMetricsWithWhitespace(repo *git.Repository, filePath string) *ChurnMetrics {
+	defer helper.Duration(helper.Track("GetChurnMetricsWithWhitespace"))
 	fileDeletedLinesMap, _ := gitfuncs.DeletedLineNumbers(repo)
 	churnMetrics := new(ChurnMetrics)
+	CalculateChurnMetrics(fileDeletedLinesMap, repo, filePath, churnMetrics)
+	churnMetrics.FileDiffMetrics = *CalculateDiffMetricsWithWhitespace(repo, filePath)
+	return churnMetrics
+}
+
+func GetChurnMetricsWhitespaceExcluded(repo *git.Repository, filePath string) *ChurnMetrics {
+	defer helper.Duration(helper.Track("GetChurnMetricsWhitespaceExcluded"))
+	fileDeletedLinesMap, _ := gitfuncs.DeletedLineNumbersWhitespaceExcluded(repo)
+	churnMetrics := new(ChurnMetrics)
+	CalculateChurnMetrics(fileDeletedLinesMap, repo, filePath, churnMetrics)
+	diffMetrics, _ := CalculateDiffMetricsWhitespaceExcluded(repo, filePath)
+	churnMetrics.FileDiffMetrics = *diffMetrics
+	return churnMetrics
+}
+
+func CalculateChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, filePath string, churnMetrics *ChurnMetrics) {
 	deletedLines := fileDeletedLinesMap[filePath]
 	parentCommitHash := gitfuncs.RevisionCommits(repo, "HEAD~1")
 
@@ -53,7 +69,4 @@ func GetChurnMetrics(repo *git.Repository, filePath string) *ChurnMetrics {
 	churnMetrics.CommitAuthor = commitAuthor
 	churnMetrics.InteractiveChurnCount = interactiveChurnCount
 	churnMetrics.ChurnDetails = churnDetails
-	churnMetrics.FileDiffMetrics = *CalculateDiffMetricsWithWhitespace(repo, filePath)
-
-	return churnMetrics
 }
