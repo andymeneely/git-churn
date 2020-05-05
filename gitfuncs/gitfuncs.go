@@ -280,6 +280,40 @@ func DeletedLineNumbers(repo *git.Repository, ) (map[string][]int, string) {
 	return fileDeletedLinesMap, parentTree.Hash.String()
 }
 
+func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository, ) (map[string][]int, string) {
+	changes, _, parentTree := CommitDiff(repo)
+	patch, _ := changes.Patch()
+	fileDeletedLinesMap := make(map[string][]int)
+	for _, patch := range patch.FilePatches() {
+		//fmt.Println(patch)
+		lineCounter := 0
+		var deletedLines []int
+		for _, chunk := range patch.Chunks() {
+			if chunk.Type() == 0 {
+				lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+			}
+			if chunk.Type() == 2 {
+				deletedPatch := strings.Split(chunk.Content(), "\n")
+				patchLen := len(deletedPatch) - 1
+				for i := 1; i <= patchLen; i++ {
+					if deletedPatch[i-1] != "" {
+						deletedLines = append(deletedLines, lineCounter+i)
+					}
+				}
+				lineCounter += patchLen
+			}
+		}
+		fromFile, toFile := patch.Files()
+		if nil == fromFile {
+			fileDeletedLinesMap[toFile.Path()] = deletedLines
+		} else {
+			fileDeletedLinesMap[fromFile.Path()] = deletedLines
+		}
+		//fmt.Println(deletedLines)
+	}
+	return fileDeletedLinesMap, parentTree.Hash.String()
+}
+
 func RevisionCommits(r *git.Repository, revision string) *plumbing.Hash {
 
 	// Resolve revision into a sha1 commit, only some revisions are resolved
@@ -348,6 +382,7 @@ func GetDistinctAuthorsEMailIds(r *git.Repository, beginCommit, endCommit, fileP
 
 func Blame(repo *git.Repository, hash *plumbing.Hash, path string) (*git.BlameResult, error) {
 
+	//TODO: It does not support the options mentioned in https://git-scm.com/docs/git-blame
 	commitObj, err := repo.CommitObject(*hash)
 	CheckIfError(err)
 
