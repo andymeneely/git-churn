@@ -40,6 +40,7 @@ Flags:
 
 # Sample Output
 
+For a perticular file
 ```
 {
   "FilePath": "src/main/java/com/webcheckers/ui/WebServer.java",
@@ -65,6 +66,25 @@ Flags:
   }
 }
 
+```
+
+For all files in a commit aggregated 
+```
+{
+  "DeletedLinesCount": 110,
+  "SelfChurnCount": 74,
+  "InteractiveChurnCount": 36,
+  "CommitAuthor": "ashishgalagali@gmail.com",
+  "AggrDiffMetrics": {
+    "Insertions": 225,
+    "Deletions": 110,
+    "LinesBefore": 3273,
+    "LinesAfter": 3386,
+    "FilesCount": 59,
+    "NewFiles": 4,
+    "DeletedFiles": 0
+  }
+}
 ```
 
 # Metrics

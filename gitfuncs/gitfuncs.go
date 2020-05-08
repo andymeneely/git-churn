@@ -249,7 +249,7 @@ func CommitDiff(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tr
 	return &changes, tree, parentTree
 }
 
-func DeletedLineNumbers(repo *git.Repository, ) (map[string][]int, string) {
+func DeletedLineNumbers(repo *git.Repository) (map[string][]int, string) {
 	changes, _, parentTree := CommitDiff(repo)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
@@ -259,12 +259,23 @@ func DeletedLineNumbers(repo *git.Repository, ) (map[string][]int, string) {
 		var deletedLines []int
 		for _, chunk := range patch.Chunks() {
 			if chunk.Type() == 0 {
-				lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+				if chunk.Content()[len(chunk.Content())-1] == '\n' {
+					lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+				} else {
+					lineCounter += len(strings.Split(chunk.Content(), "\n"))
+				}
+				//lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
 			}
 			if chunk.Type() == 2 {
-				patchLen := len(strings.Split(chunk.Content(), "\n")) - 1
+				var patchLen int
+				if chunk.Content()[len(chunk.Content())-1] == '\n' {
+					patchLen = len(strings.Split(chunk.Content(), "\n")) - 1
+				} else {
+					patchLen = len(strings.Split(chunk.Content(), "\n"))
+				}
 				for i := 1; i <= patchLen; i++ {
 					deletedLines = append(deletedLines, lineCounter+i)
+
 				}
 				lineCounter += patchLen
 			}
@@ -280,7 +291,7 @@ func DeletedLineNumbers(repo *git.Repository, ) (map[string][]int, string) {
 	return fileDeletedLinesMap, parentTree.Hash.String()
 }
 
-func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository, ) (map[string][]int, string) {
+func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository) (map[string][]int, string) {
 	changes, _, parentTree := CommitDiff(repo)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
@@ -290,11 +301,20 @@ func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository, ) (map[string][]
 		var deletedLines []int
 		for _, chunk := range patch.Chunks() {
 			if chunk.Type() == 0 {
-				lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+				if chunk.Content()[len(chunk.Content())-1] == '\n' {
+					lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+				} else {
+					lineCounter += len(strings.Split(chunk.Content(), "\n"))
+				}
 			}
 			if chunk.Type() == 2 {
 				deletedPatch := strings.Split(chunk.Content(), "\n")
-				patchLen := len(deletedPatch) - 1
+				var patchLen int
+				if chunk.Content()[len(chunk.Content())-1] == '\n' {
+					patchLen = len(deletedPatch) - 1
+				} else {
+					patchLen = len(deletedPatch)
+				}
 				for i := 1; i <= patchLen; i++ {
 					if deletedPatch[i-1] != "" {
 						deletedLines = append(deletedLines, lineCounter+i)
@@ -386,6 +406,15 @@ func Blame(repo *git.Repository, hash *plumbing.Hash, path string) (*git.BlameRe
 	commitObj, err := repo.CommitObject(*hash)
 	CheckIfError(err)
 
+	// This is because the Blame throws error if the previous commit is a merge PR commit
+	//if strings.Contains(commitObj.Message, "Merge pull request") {
+	//	hash := RevisionCommits(repo, "HEAD^^2")
+	//	commitObj, err = repo.CommitObject(*hash)
+	//	fmt.Println(commitObj.Message)
+	//	CheckIfError(err)
+	//}
+
+	//TODO: issue: https://github.com/src-d/go-git/issues/725
 	blameResult, err := git.Blame(commitObj, path)
 
 	//fmt.Println(blameResult)
