@@ -39,15 +39,15 @@ var (
 			repo := gitfuncs.Checkout(repoUrl, commitId)
 			if whitespace {
 				if filepath != "" {
-					churnMetrics = metrics.GetChurnMetricsWithWhitespace(repo, filepath)
+					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, filepath)
 				} else {
-					churnMetrics = metrics.AggrDiffMetricsWithWhitespace(repo)
+					churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo)
 				}
 			} else {
 				if filepath != "" {
-					churnMetrics = metrics.GetChurnMetricsWhitespaceExcluded(repo, filepath)
+					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, filepath)
 				} else {
-					churnMetrics, err = metrics.AggrDiffMetricsWhitespaceExcluded(repo)
+					churnMetrics = metrics.AggrChurnMetricsWhitespaceExcluded(repo)
 				}
 				print.CheckIfError(err)
 			}
