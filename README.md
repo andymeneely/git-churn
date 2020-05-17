@@ -14,6 +14,32 @@ You will need Go language installed on your system. Ref: https://golang.org/doc/
 
 # Usage
 
+To use it in the form of API, run the 
+```
+./git-churn
+```
+and you can find the swagger documentation on the link:
+http://localhost:8080/swagger/index.html 
+Click on "Try it out" to insert values into the query param and execute the APIs
+
+Following the example APIs:
+To get the churn metrics for a specific file:
+http://localhost:8080/churn-metrics/file?repoUrl=https://github.com/andymeneely/git-churn&commitId=99992110e402f26ca9162f43c0e5a97b1278068a&whitespace=false&filepath=README.md
+
+To get the aggregated churn metrics:
+http://localhost:8080/churn-metrics/aggr?repoUrl=https://github.com/andymeneely/git-churn&commitId=99992110e402f26ca9162f43c0e5a97b1278068a&whitespace=true
+
+For Developers:
+If you make any Swagger API documentation changes, run the following command to update the swagger UI:
+```
+ $ swag init 
+```
+If it doesn't work try:
+```
+ $ GOPATH/bin/swag init 
+```
+
+
 In general, `git churn` works much like `git log`, with some additional options.
 
 Show basic churn metrics for a specific commit and file:
