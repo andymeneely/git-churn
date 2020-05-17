@@ -9,15 +9,17 @@ import (
 	"strconv"
 )
 
-// GetMetrics Swagger test
-// @Summary Show an account
-// @Description get string by ID
-// @Tags accounts
+// Get File Churn-metrics
+// @Summary Provides churn details for a given commit
+// @Description Provides churn details for a given commit and for the specified file
 // @Produce  json
-// @repoUrl id path int true "Account ID"
-// @Success 200 {object} metrics.ChurnMetrics
-// @Router /accounts/{id} [get]
-func GetChurnMetrics(c *gin.Context) {
+// @Param repoUrl query string true "repo Url"
+// @Param commitId query string true "commit Id"
+// @Param whitespace query string false "Should whitespaces be considered?"  default(true)
+// @Param filepath query string true "file path"
+// @Success 200 {object} metrics.FileChurnMetrics
+// @Router /churn-metrics/file [get]
+func GetFileChurnMetrics(c *gin.Context) {
 	repoUrl := c.Query("repoUrl")
 	commitId := c.Query("commitId")
 	//TODO: handle error
@@ -43,5 +45,30 @@ func GetChurnMetrics(c *gin.Context) {
 	//fmt.Println(fmt.Sprintf("%v", churnMetrics))
 	//out, err := json.Marshal(churnMetrics)
 	c.JSON(http.StatusOK, churnMetrics)
+}
 
+// Get Aggregate Churn-metrics
+// @Summary Provides Aggregate churn details for a given commit
+// @Description Provides Aggregated churn details of all the files for a given commit
+// @Produce  json
+// @Param repoUrl query string true "repo Url"
+// @Param commitId query string true "commit Id"
+// @Param whitespace query string false "Should whitespaces be considered?"  default(true)
+// @Success 200 {object} metrics.AggrChurMetrics
+// @Router /churn-metrics/aggr [get]
+func GetAggrChurnMetrics(c *gin.Context) {
+	repoUrl := c.Query("repoUrl")
+	commitId := c.Query("commitId")
+	//TODO: handle error
+	whitespace, _ := strconv.ParseBool(c.DefaultQuery("whitespace", "true"))
+	var churnMetrics interface{}
+	repo := gitfuncs.Checkout(repoUrl, commitId)
+	if whitespace {
+		churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo)
+	} else {
+		churnMetrics = metrics.AggrChurnMetricsWhitespaceExcluded(repo)
+	}
+	//fmt.Println(fmt.Sprintf("%v", churnMetrics))
+	//out, err := json.Marshal(churnMetrics)
+	c.JSON(http.StatusOK, churnMetrics)
 }

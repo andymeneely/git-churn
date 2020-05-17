@@ -1,0 +1,223 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "APIs to get Git-churn metrices.",
+        "title": "Swagger Git-Churn API",
+        "contact": {
+            "name": "Dr. Andy Meneely",
+            "url": "http://www.github.com/andymeneely",
+            "email": "axmvse@rit.edu"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/churn-metrics/aggr": {
+            "get": {
+                "description": "Provides Aggregated churn details of all the files for a given commit",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Provides Aggregate churn details for a given commit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "repo Url",
+                        "name": "repoUrl",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "commit Id",
+                        "name": "commitId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "true",
+                        "description": "Should whitespaces be considered?",
+                        "name": "whitespace",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/metrics.AggrChurMetrics"
+                        }
+                    }
+                }
+            }
+        },
+        "/churn-metrics/file": {
+            "get": {
+                "description": "Provides churn details for a given commit and for the specified file",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Provides churn details for a given commit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "repo Url",
+                        "name": "repoUrl",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "commit Id",
+                        "name": "commitId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "true",
+                        "description": "Should whitespaces be considered?",
+                        "name": "whitespace",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "file path",
+                        "name": "filepath",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/metrics.FileChurnMetrics"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "metrics.AggrChurMetrics": {
+            "type": "object",
+            "properties": {
+                "Commit_Author": {
+                    "type": "string",
+                    "example": "test@test.edu"
+                },
+                "Deleted_Lines_Count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "Interactive_Churn_Count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "Self_Churn_Count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "aggrDiffMetrics": {
+                    "type": "object",
+                    "$ref": "#/definitions/metrics.AggrDiffMetrics"
+                }
+            }
+        },
+        "metrics.AggrDiffMetrics": {
+            "type": "object",
+            "properties": {
+                "deletedFiles": {
+                    "type": "integer"
+                },
+                "deletions": {
+                    "type": "integer"
+                },
+                "filesCount": {
+                    "type": "integer"
+                },
+                "insertions": {
+                    "type": "integer"
+                },
+                "linesAfter": {
+                    "type": "integer"
+                },
+                "linesBefore": {
+                    "type": "integer"
+                },
+                "newFiles": {
+                    "type": "integer"
+                }
+            }
+        },
+        "metrics.FileChurnMetrics": {
+            "type": "object",
+            "properties": {
+                "Commit_Author": {
+                    "type": "string",
+                    "example": "test@test.edu"
+                },
+                "Deleted_Lines_Count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "File_Path": {
+                    "type": "string",
+                    "example": "relative/path/to/file.go"
+                },
+                "Interactive_Churn_Count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "Self_Churn_Count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "churnDetails": {
+                    "description": "Map of CommitId, Author",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "fileDiffMetrics": {
+                    "type": "object",
+                    "$ref": "#/definitions/metrics.FileDiffMetrics"
+                }
+            }
+        },
+        "metrics.FileDiffMetrics": {
+            "type": "object",
+            "properties": {
+                "deleteFile": {
+                    "type": "boolean"
+                },
+                "deletions": {
+                    "type": "integer"
+                },
+                "file": {
+                    "type": "string"
+                },
+                "insertions": {
+                    "type": "integer"
+                },
+                "linesAfter": {
+                    "type": "integer"
+                },
+                "linesBefore": {
+                    "type": "integer"
+                },
+                "newFile": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

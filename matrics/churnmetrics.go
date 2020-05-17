@@ -9,10 +9,10 @@ import (
 )
 
 type ChurnMetrics struct {
-	DeletedLinesCount     int
-	SelfChurnCount        int
-	InteractiveChurnCount int
-	CommitAuthor          string
+	DeletedLinesCount     int    `json:"Deleted_Lines_Count" example:"10"`
+	SelfChurnCount        int    `json:"Self_Churn_Count" example:"6"`
+	InteractiveChurnCount int    `json:"Interactive_Churn_Count" example:"6"`
+	CommitAuthor          string `json:"Commit_Author" example:"test@test.edu"`
 }
 
 type AggrChurMetrics struct {
@@ -22,7 +22,7 @@ type AggrChurMetrics struct {
 
 type FileChurnMetrics struct {
 	ChurnMetrics
-	FilePath string
+	FilePath string `json:"File_Path" example:"relative/path/to/file.go"`
 	//Map of CommitId, Author
 	ChurnDetails    map[string]string
 	FileDiffMetrics FileDiffMetrics

@@ -1,0 +1,153 @@
+basePath: /
+definitions:
+  metrics.AggrChurMetrics:
+    properties:
+      Commit_Author:
+        example: test@test.edu
+        type: string
+      Deleted_Lines_Count:
+        example: 10
+        type: integer
+      Interactive_Churn_Count:
+        example: 6
+        type: integer
+      Self_Churn_Count:
+        example: 6
+        type: integer
+      aggrDiffMetrics:
+        $ref: '#/definitions/metrics.AggrDiffMetrics'
+        type: object
+    type: object
+  metrics.AggrDiffMetrics:
+    properties:
+      deletedFiles:
+        type: integer
+      deletions:
+        type: integer
+      filesCount:
+        type: integer
+      insertions:
+        type: integer
+      linesAfter:
+        type: integer
+      linesBefore:
+        type: integer
+      newFiles:
+        type: integer
+    type: object
+  metrics.FileChurnMetrics:
+    properties:
+      Commit_Author:
+        example: test@test.edu
+        type: string
+      Deleted_Lines_Count:
+        example: 10
+        type: integer
+      File_Path:
+        example: relative/path/to/file.go
+        type: string
+      Interactive_Churn_Count:
+        example: 6
+        type: integer
+      Self_Churn_Count:
+        example: 6
+        type: integer
+      churnDetails:
+        additionalProperties:
+          type: string
+        description: Map of CommitId, Author
+        type: object
+      fileDiffMetrics:
+        $ref: '#/definitions/metrics.FileDiffMetrics'
+        type: object
+    type: object
+  metrics.FileDiffMetrics:
+    properties:
+      deleteFile:
+        type: boolean
+      deletions:
+        type: integer
+      file:
+        type: string
+      insertions:
+        type: integer
+      linesAfter:
+        type: integer
+      linesBefore:
+        type: integer
+      newFile:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: axmvse@rit.edu
+    name: Dr. Andy Meneely
+    url: http://www.github.com/andymeneely
+  description: APIs to get Git-churn metrices.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Swagger Git-Churn API
+  version: "1.0"
+paths:
+  /churn-metrics/aggr:
+    get:
+      description: Provides Aggregated churn details of all the files for a given commit
+      parameters:
+      - description: repo Url
+        in: query
+        name: repoUrl
+        required: true
+        type: string
+      - description: commit Id
+        in: query
+        name: commitId
+        required: true
+        type: string
+      - default: "true"
+        description: Should whitespaces be considered?
+        in: query
+        name: whitespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/metrics.AggrChurMetrics'
+      summary: Provides Aggregate churn details for a given commit
+  /churn-metrics/file:
+    get:
+      description: Provides churn details for a given commit and for the specified file
+      parameters:
+      - description: repo Url
+        in: query
+        name: repoUrl
+        required: true
+        type: string
+      - description: commit Id
+        in: query
+        name: commitId
+        required: true
+        type: string
+      - default: "true"
+        description: Should whitespaces be considered?
+        in: query
+        name: whitespace
+        type: string
+      - description: file path
+        in: query
+        name: filepath
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/metrics.FileChurnMetrics'
+      summary: Provides churn details for a given commit
+swagger: "2.0"
