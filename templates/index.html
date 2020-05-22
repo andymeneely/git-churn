@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<title>W3.CSS Template</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+    body, h1, h2, h3, h4, h5, h6 {
+        font-family: "Raleway", Arial, Helvetica, sans-serif
+    }
+
+    .myLink {
+        display: none
+    }
+</style>
+<body class="w3-light-grey">
+
+<!-- Navigation Bar -->
+<div class="w3-bar w3-white w3-border-bottom w3-xlarge">
+    <a href="#" class="w3-bar-item w3-button w3-text-red w3-hover-red"><b>Git-Churn</b></a>
+</div>
+
+<!-- Header -->
+{{/*<header class="w3-display-container w3-content w3-hide-small" style="max-width:1500px">*/}}
+{{/*    <img class="w3-image" src="/w3images/london2.jpg" alt="London" width="1500" height="700">*/}}
+<div class="w3-display-middle" style="width:65%">
+    <div class="w3-bar w3-black">
+        <button class="w3-bar-item w3-button tablink" onclick="openLink(event, 'File');">File</button>
+        <button class="w3-bar-item w3-button tablink" onclick="openLink(event, 'Aggregate');">Aggregate</button>
+    </div>
+
+    <!-- Tabs -->
+    <div id="File" class="w3-container w3-white w3-padding-16 myLink">
+        <h3>Churn metrics for a specific file</h3>
+        <form class="form" action="/v1/churn-metrics/file" method="POST">
+            <div class="w3-row-padding" style="margin:0 -16px;">
+                <div class="w3-half">
+                    <label>Repo</label>
+                    <input class="w3-input w3-border" type="text" id="repoUrl" name="repoUrl" placeholder="Repo Url">
+                </div>
+                <div class="w3-half">
+                    <label>Commit Id</label>
+                    <input class="w3-input w3-border" type="text" id="commitId" name="commitId" placeholder="Commit Id">
+                </div>
+                <div class="w3-half">
+                    <label>White Space</label>
+                    <input class="w3-input w3-border" type="text" id="whitespace" name="whitespace"
+                           placeholder="White Space">
+                </div>
+                <div class="w3-half">
+                    <label>File Path</label>
+                    <input class="w3-input w3-border" type="text" id="filepath" name="filepath" placeholder="File Path">
+                </div>
+            </div>
+            <p>
+                <button class="w3-button w3-dark-grey">Get File Churn Metrics</button>
+            </p>
+        </form>
+    </div>
+
+    <div id="Aggregate" class="w3-container w3-white w3-padding-16 myLink">
+        <h3>Churn metrics of all the file</h3>
+        <!--Create a form that POSTs to the `/u/register` route-->
+        <form class="form" action="/v1/churn-metrics/aggr" method="POST">
+            <div class="w3-row-padding" style="margin:0 -16px;">
+                <div class="w3-half">
+                    <label for="repoUrl">Repo</label>
+                    <input class="w3-input w3-border" type="text" id="repoUrl" name="repoUrl" placeholder="Repo URL">
+                </div>
+                <div class="w3-half">
+                    <label for="commitId">Commit Id</label>
+                    <input class="w3-input w3-border" type="text" id="commitId" name="commitId" placeholder="Commit Id">
+                </div>
+                <div class="w3-half">
+                    <label for="whitespace">White Space</label>
+                    <input class="w3-input w3-border" type="text" id="whitespace" name="whitespace"
+                           placeholder="White Space">
+                </div>
+            </div>
+
+            <p>
+                <button type="submit" class="w3-button w3-dark-grey">Get Aggregated Churn Metrics</button>
+            </p>
+        </form>
+    </div>
+
+    <script>
+        // Tabs
+        function openLink(evt, linkName) {
+            var i, x, tablinks;
+            x = document.getElementsByClassName("myLink");
+            for (i = 0; i < x.length; i++) {
+                x[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablink");
+            for (i = 0; i < x.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" w3-red", "");
+            }
+            document.getElementById(linkName).style.display = "block";
+            evt.currentTarget.className += " w3-red";
+        }
+
+        // Click on the first tablink on load
+        document.getElementsByClassName("tablink")[0].click();
+    </script>
+
+</body>
+</html>

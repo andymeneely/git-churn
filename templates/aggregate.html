@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<title>W3.CSS Template</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+    body, h1, h2, h3, h4, h5, h6 {
+        font-family: "Raleway", Arial, Helvetica, sans-serif
+    }
+
+    .myLink {
+        display: none
+    }
+</style>
+<body class="w3-light-grey">
+
+<!-- Navigation Bar -->
+<div class="w3-bar w3-white w3-border-bottom w3-xlarge">
+    <a href="#" class="w3-bar-item w3-button w3-text-red w3-hover-red"><b>Git-Churn</b></a>
+</div>
+
+<!-- Header -->
+{{/*<header class="w3-display-container w3-content w3-hide-small" style="max-width:1500px">*/}}
+    {{/*    <img class="w3-image" src="/w3images/london2.jpg" alt="London" width="1500" height="700">*/}}
+    <div style="width:65%;margin: 0 auto ">
+        <div class="w3-bar w3-black">
+            <button class="w3-bar-item w3-button tablink">Aggregated Churn-Metrics</button>
+        </div>
+
+        <div id="Aggregated Churn-Metrics" class="w3-container w3-white w3-padding-16">
+            <h3>Churn metrics of all the file</h3>
+            <div class="w3-row-padding" style="margin:0 -16px;">
+                <div>
+                    <label for="Repo Url">Repo Url</label>
+                    <p class="w3-input w3-border">{{.repo}}</p>
+                </div>
+                <div>
+                    <label for="Commit Id">Commit Id</label>
+                    <p class="w3-input w3-border">{{.commit}}</p>
+                </div>
+                <div>
+                    <label for="CommitAuthor">Commit Author</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.CommitAuthor}}</p>
+                </div>
+                <div class="w3-half">
+                    <label for="Deleted lines">Deleted lines</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.DeletedLinesCount}}</p>
+                </div>
+                <div class="w3-half">
+                    <label for="Self Churn Count">Self Churn Count</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.SelfChurnCount}}</p>
+                </div>
+                <div class="w3-half">
+                    <label >Interactive Churn Count</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.InteractiveChurnCount}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>Insertions</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.Insertions}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>Lines Before</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.LinesBefore}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>Lines After</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.LinesAfter}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>Files Count</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.FilesCount}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>New Files</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.NewFiles}}</p>
+                </div>
+                <div class="w3-half">
+                    <label>Deleted Files</label>
+                    <p class="w3-input w3-border">{{.churnMetrics.AggrDiffMetrics.DeletedFiles}}</p>
+                </div>
+
+
+            </div>
+            <p>
+                <button class="w3-button w3-dark-grey"><a href="/">Back</a></button>
+            </p>
+        </div>
+    </div>
+<!-- Page content -->
+
+
+</body>
+</html>
