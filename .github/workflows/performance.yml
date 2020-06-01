@@ -24,8 +24,8 @@ jobs:
         run: go build .
 
       - name: Clone and run on HTTPD
-        run: |
-          time git-churn -r https://github.com/andymeneely/squib.git -c 20f2063e678904ef34f1114a9d3bd4e71ab45a9c
+        run: 
+          time ./git-churn -r https://github.com/andymeneely/squib.git -c 20f2063e678904ef34f1114a9d3bd4e71ab45a9c
 
 
   # benchmark:
