@@ -18,9 +18,9 @@ In general, `git churn` works much like `git log`, with some additional options.
 
 Show basic churn metrics for a specific commit and file:
 ```
-  $ git-churn --help
-  $ git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1 --filepath src/main/java/com/webcheckers/ui/WebServer.java
-  $ git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt --whitespace=false
+  $ ./git-churn --help
+  $ ./git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1 --filepath src/main/java/com/webcheckers/ui/WebServer.java
+  $ ./git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt --whitespace=false
 ```
 
 To show the aggregated churn metrics for a specific commit:
@@ -35,11 +35,12 @@ Flags:
   -f, --filepath string   File path for the file on which the commit metrics has to be computed
   -h, --help              help for git-churn
   -r, --repo string       Git Repository URL on which the churn metrics has to be computed
-  -w, --whitespace        Excludes whitespaces while calculating the churn metrics is set to false (default true)
+  -w, --whitespace        Excludes whitespaces while calculating the churn metrics if set to false (default true)
 ```
 
 # Sample Output
 
+For a perticular file
 ```
 {
   "FilePath": "src/main/java/com/webcheckers/ui/WebServer.java",
@@ -65,6 +66,25 @@ Flags:
   }
 }
 
+```
+
+For all files in a commit aggregated 
+```
+{
+  "DeletedLinesCount": 110,
+  "SelfChurnCount": 74,
+  "InteractiveChurnCount": 36,
+  "CommitAuthor": "ashishgalagali@gmail.com",
+  "AggrDiffMetrics": {
+    "Insertions": 225,
+    "Deletions": 110,
+    "LinesBefore": 3273,
+    "LinesAfter": 3386,
+    "FilesCount": 59,
+    "NewFiles": 4,
+    "DeletedFiles": 0
+  }
+}
 ```
 
 # Metrics
