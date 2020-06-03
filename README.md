@@ -68,7 +68,7 @@ For a perticular file
 
 ```
 
-For all files in a commit aggregated 
+For all files in a commit aggregated
 ```
 {
   "DeletedLinesCount": 110,
@@ -103,8 +103,3 @@ To run automated tests:
 ```
 $ go test ./...
 ```
-
-To run benchmarks:
-
-```
-$ go test -bench=. ./...
