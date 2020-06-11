@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/andymeneely/git-churn/gitfuncs"
 	"github.com/andymeneely/git-churn/helper"
-	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"strings"
 )
 
@@ -27,11 +27,11 @@ type AggrDiffMetrics struct {
 	DeletedFiles int
 }
 
-func CalculateDiffMetricsWithWhitespace(repo *git.Repository, filePath string) *FileDiffMetrics {
+func CalculateDiffMetricsWithWhitespace(filePath string, changes *object.Changes, tree, parentTree *object.Tree) *FileDiffMetrics {
 	defer helper.Duration(helper.Track("CalculateDiffMetricsWithWhitespace"))
 	diffMetrics := new(FileDiffMetrics)
 	diffMetrics.File = filePath
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo)
+	//changes, tree, parentTree := gitfuncs.CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
 	//fmt.Println(changes)
 	//fmt.Println(patch)
@@ -61,35 +61,55 @@ func CalculateDiffMetricsWithWhitespace(repo *git.Repository, filePath string) *
 
 }
 
-func CalculateDiffMetricsWhitespaceExcluded(repo *git.Repository, filePath string) (*FileDiffMetrics, error) {
+func CalculateDiffMetricsWhitespaceExcluded(filePath string, changes *object.Changes, tree, parentTree *object.Tree) (*FileDiffMetrics, error) {
 	defer helper.Duration(helper.Track("CalculateDiffMetricsWhitespaceExcluded"))
 	diffMetrics := new(FileDiffMetrics)
 	diffMetrics.File = filePath
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo)
 	patch, _ := changes.Patch()
-
 	fileDiffTexts := strings.Split(patch.String(), "diff --git a/"+filePath)
 	if len(fileDiffTexts) < 2 {
 		return nil, errors.New("File: " + filePath + " not found in the given commitHash")
 	}
-	fileDiff := strings.Split(fileDiffTexts[1], "+++")[1]
-	fileDiff = strings.Split(fileDiff, "diff --git")[0]
-	lines := strings.Split(fileDiff, "\n")
 
 	insertions := 0
 	deletions := 0
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
+	for _, filePatch := range patch.FilePatches() {
+		fromFile, toFile := filePatch.Files()
+		if (fromFile != nil && fromFile.Path() == filePath) || (toFile != nil && toFile.Path() == filePath) {
 
-		if strings.HasPrefix(line, "+") && line != "+" {
-			insertions += 1
-		}
-		if strings.HasPrefix(line, "-") && line != "-" {
-			deletions += 1
+			for _, chunk := range filePatch.Chunks() {
+				if chunk.Type() == 1 {
+					addedPatch := strings.Split(chunk.Content(), "\n")
+					var patchLen int
+					if chunk.Content()[len(chunk.Content())-1] == '\n' {
+						patchLen = len(addedPatch) - 1
+					} else {
+						patchLen = len(addedPatch) - 1
+					}
+					for i := 1; i <= patchLen; i++ {
+						if addedPatch[i-1] != "" {
+							insertions += 1
+						}
+					}
+				}
+				if chunk.Type() == 2 {
+					deletedPatch := strings.Split(chunk.Content(), "\n")
+					var patchLen int
+					if chunk.Content()[len(chunk.Content())-1] == '\n' {
+						patchLen = len(deletedPatch) - 1
+					} else {
+						patchLen = len(deletedPatch)
+					}
+					for i := 1; i <= patchLen; i++ {
+						if deletedPatch[i-1] != "" {
+							deletions += 1
+						}
+					}
+				}
+			}
 		}
 	}
-
 	diffMetrics.Insertions = insertions
 	diffMetrics.Deletions = deletions
 
@@ -109,10 +129,10 @@ func CalculateDiffMetricsWhitespaceExcluded(repo *git.Repository, filePath strin
 
 //Gets the aggregated DiffMetrics for all the files in the given repo for the specified commit hash.
 //It includes the whitespaces while counting the changes.
-func AggrDiffMetricsWithWhitespace(repo *git.Repository) *AggrDiffMetrics {
+func AggrDiffMetricsWithWhitespace(changes *object.Changes, tree, parentTree *object.Tree) *AggrDiffMetrics {
 	defer helper.Duration(helper.Track("AggrDiffMetricsWithWhitespace"))
 	diffMetrics := new(AggrDiffMetrics)
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo)
+	//changes, tree, parentTree := gitfuncs.CommitDiff(repo, nil)
 	patch, _ := changes.Patch()
 	//fmt.Println(changes)
 	//fmt.Println(patch)
@@ -190,10 +210,9 @@ func getNewFilesCount(beforeFiles []string, afterFiles []string, newFiles chan i
 
 //Gets the aggregated DiffMetrics for all the files in the given repo for the specified commit hash.
 //It neglects the whitespaces while counting the changes
-func AggrDiffMetricsWhitespaceExcluded(repo *git.Repository) (*AggrDiffMetrics, error) {
+func AggrDiffMetricsWhitespaceExcluded(changes *object.Changes, tree, parentTree *object.Tree) (*AggrDiffMetrics, error) {
 	defer helper.Duration(helper.Track("AggrDiffMetricsWhitespaceExcluded"))
 	diffMetrics := new(AggrDiffMetrics)
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo)
 	patch, _ := changes.Patch()
 
 	fileDiffTexts := strings.Split(patch.String(), "diff --git a/")

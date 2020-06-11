@@ -216,7 +216,7 @@ func FilesIttr(repoUrl string) *object.FileIter {
 }
 
 // Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
-func CommitDiff(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tree) {
+func CommitDiffold(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tree) {
 
 	head, err := repo.Head()
 	CheckIfError(err)
@@ -249,8 +249,50 @@ func CommitDiff(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tr
 	return &changes, tree, parentTree
 }
 
-func DeletedLineNumbers(repo *git.Repository) (map[string][]int, string) {
-	changes, _, parentTree := CommitDiff(repo)
+// Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
+func CommitDiff(repo *git.Repository, parentCommitHash *plumbing.Hash) (*object.Changes, *object.Tree, *object.Tree) {
+
+	head, err := repo.Head()
+	CheckIfError(err)
+
+	commitObj, err := repo.CommitObject(head.Hash())
+	CheckIfError(err)
+	//fmt.Println(commitObj.Author.Name)
+	//fmt.Println(commitObj.Author.Email)
+	//fmt.Println(commitObj.Author.When)
+	//fmt.Println(commitObj.Author.String())
+
+	//if parentCommitHash
+	var parentCommitObj *object.Commit
+
+	if parentCommitHash == nil {
+		parentCommitObj, err = commitObj.Parent(0)
+		CheckIfError(err)
+	} else {
+		parentCommitObj, err = repo.CommitObject(*parentCommitHash)
+		CheckIfError(err)
+	}
+
+	// List the tree from HEAD
+	Info("git ls-tree -repo " + parentCommitObj.Hash.String())
+
+	// ... retrieve the tree from the commit
+	tree, err := commitObj.Tree()
+	CheckIfError(err)
+
+	parentTree, err := parentCommitObj.Tree()
+	CheckIfError(err)
+	changes, err := parentTree.Diff(tree)
+	CheckIfError(err)
+
+	//fmt.Println(changes)
+	//fmt.Println(changes.Patch())
+
+	return &changes, tree, parentTree
+}
+
+func DeletedLineNumbers(changes *object.Changes) map[string][]int {
+	//changes, _, parentTree := CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
 	for _, patch := range patch.FilePatches() {
@@ -286,13 +328,11 @@ func DeletedLineNumbers(repo *git.Repository) (map[string][]int, string) {
 		} else {
 			fileDeletedLinesMap[fromFile.Path()] = deletedLines
 		}
-		//fmt.Println(deletedLines)
 	}
-	return fileDeletedLinesMap, parentTree.Hash.String()
+	return fileDeletedLinesMap
 }
 
-func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository) (map[string][]int, string) {
-	changes, _, parentTree := CommitDiff(repo)
+func DeletedLineNumbersWhitespaceExcluded(changes *object.Changes) map[string][]int {
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
 	for _, patch := range patch.FilePatches() {
@@ -331,13 +371,17 @@ func DeletedLineNumbersWhitespaceExcluded(repo *git.Repository) (map[string][]in
 		}
 		//fmt.Println(deletedLines)
 	}
-	return fileDeletedLinesMap, parentTree.Hash.String()
+	return fileDeletedLinesMap
 }
 
 func RevisionCommits(r *git.Repository, revision string) *plumbing.Hash {
 
 	// Resolve revision into a sha1 commit, only some revisions are resolved
 	// look at the doc to get more details
+	if revision == "" {
+		revision = "HEAD~1"
+	}
+
 	Info("git rev-parse %s", revision)
 
 	h, err := r.ResolveRevision(plumbing.Revision(revision))
