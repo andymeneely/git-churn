@@ -8,6 +8,8 @@ import (
 	"github.com/andymeneely/git-churn/print"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
+	"unicode"
 )
 
 func init() {
@@ -22,7 +24,6 @@ func init() {
 }
 
 var (
-	//TODO: Add whitespace exclusion bool flag
 	repoUrl    string
 	commitId   string
 	filepath   string
@@ -36,16 +37,31 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			var churnMetrics interface{}
 			var err error
+			commitIds := strings.Split(commitId, "..")
+			firstCommitId := commitIds[0]
+			var secondCommitId = ""
+			if len(commitIds) == 2 {
+				secondCommitId = strings.TrimFunc(commitIds[1], func(r rune) bool {
+					return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+				})
+			}
+			if secondCommitId == "" {
+				commitId = firstCommitId
+				firstCommitId = ""
+			} else {
+				commitId = secondCommitId
+			}
+
 			repo := gitfuncs.Checkout(repoUrl, commitId)
 			if whitespace {
 				if filepath != "" {
-					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, filepath)
+					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, filepath, firstCommitId)
 				} else {
 					churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo)
 				}
 			} else {
 				if filepath != "" {
-					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, filepath)
+					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, filepath, firstCommitId)
 				} else {
 					churnMetrics = metrics.AggrChurnMetricsWhitespaceExcluded(repo)
 				}
