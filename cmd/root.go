@@ -52,18 +52,18 @@ var (
 				commitId = secondCommitId
 			}
 
-			repo := gitfuncs.Checkout(repoUrl, commitId)
+			repo := gitfuncs.GetRepo(repoUrl)
 			if whitespace {
 				if filepath != "" {
-					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, filepath, firstCommitId)
+					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, commitId, filepath, firstCommitId)
 				} else {
-					churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo)
+					churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo, commitId)
 				}
 			} else {
 				if filepath != "" {
-					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, filepath, firstCommitId)
+					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, commitId, filepath, firstCommitId)
 				} else {
-					churnMetrics = metrics.AggrChurnMetricsWhitespaceExcluded(repo)
+					churnMetrics = metrics.AggrChurnMetricsWhitespaceExcluded(repo, commitId)
 				}
 				print.CheckIfError(err)
 			}

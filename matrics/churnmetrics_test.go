@@ -3,12 +3,22 @@ package metrics
 import (
 	"github.com/andymeneely/git-churn/gitfuncs"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/src-d/go-git.v4"
 	"testing"
 )
 
+var churnRepo *git.Repository
+var projectRepo *git.Repository
+
+func init() {
+	churnRepo = gitfuncs.GetRepo("https://github.com/andymeneely/git-churn")
+	projectRepo = gitfuncs.GetRepo("https://github.com/ashishgalagali/SWEN610-project")
+}
+
 func TestGetChurnMetricsAll(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "c800ce62fc8a10d5fe69adb283f06296820522c1")
-	churnmetrics, _ := GetChurnMetricsWithWhitespace(repo, "src/main/java/com/webcheckers/ui/WebServer.java", "")
+	//repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "c800ce62fc8a10d5fe69adb283f06296820522c1")
+	//repo, _ := git.PlainOpen("/Users/raj.g/Documents/projects/SWEN610-project")
+	churnmetrics, _ := GetChurnMetricsWithWhitespace(projectRepo, "c800ce62fc8a10d5fe69adb283f06296820522c1", "src/main/java/com/webcheckers/ui/WebServer.java", "")
 	assert := assert.New(t)
 	assert.Equal("src/main/java/com/webcheckers/ui/WebServer.java", churnmetrics.FilePath)
 	assert.Equal(13, churnmetrics.DeletedLinesCount)
@@ -23,8 +33,7 @@ func TestGetChurnMetricsAll(t *testing.T) {
 
 func TestGetChurnMetricsAllRange(t *testing.T) {
 	//https://github.com/ashishgalagali/SWEN610-project/compare/5a2bf9f4da3de056dde3d9a9c18859de124d2602...c800ce62fc8a10d5fe69adb283f06296820522c1
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "c800ce62fc8a10d5fe69adb283f06296820522c1")
-	churnmetrics, _ := GetChurnMetricsWithWhitespace(repo, "src/main/java/com/webcheckers/ui/WebServer.java", "5a2bf9f4da3de056dde3d9a9c18859de124d2602")
+	churnmetrics, _ := GetChurnMetricsWithWhitespace(projectRepo, "c800ce62fc8a10d5fe69adb283f06296820522c1", "src/main/java/com/webcheckers/ui/WebServer.java", "5a2bf9f4da3de056dde3d9a9c18859de124d2602")
 	assert := assert.New(t)
 	assert.Equal("src/main/java/com/webcheckers/ui/WebServer.java", churnmetrics.FilePath)
 	assert.Equal(4, churnmetrics.DeletedLinesCount)
@@ -36,11 +45,10 @@ func TestGetChurnMetricsAllRange(t *testing.T) {
 	assert.Equal("ashishgalagali@gmail.com", churnmetrics.ChurnDetails["979fe965043d49814c2fb7e7f5bae3461911b88b"])
 	assert.Equal(4, churnmetrics.FileDiffMetrics.Deletions)
 	assert.Equal(19, churnmetrics.FileDiffMetrics.Insertions)
-
 }
+
 func TestGetChurnMetricsAllRangeRev(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "5a2bf9f4da3de056dde3d9a9c18859de124d2602")
-	churnmetrics, _ := GetChurnMetricsWithWhitespace(repo, "src/main/java/com/webcheckers/ui/WebServer.java", "c800ce62fc8a10d5fe69adb283f06296820522c1")
+	churnmetrics, _ := GetChurnMetricsWithWhitespace(projectRepo, "5a2bf9f4da3de056dde3d9a9c18859de124d2602", "src/main/java/com/webcheckers/ui/WebServer.java", "c800ce62fc8a10d5fe69adb283f06296820522c1")
 	assert := assert.New(t)
 	assert.Equal("src/main/java/com/webcheckers/ui/WebServer.java", churnmetrics.FilePath)
 	assert.Equal(19, churnmetrics.DeletedLinesCount)
@@ -65,8 +73,8 @@ func TestGetChurnMetricsAllRangeRev(t *testing.T) {
 //}
 
 func TestGetChurnMetricsInteractiveChurn(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
-	churnmetrics, _ := GetChurnMetricsWithWhitespace(repo, "README.md", "")
+	churnmetrics, _ := GetChurnMetricsWithWhitespace(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "README.md", "")
+
 	assert := assert.New(t)
 	assert.Equal("README.md", churnmetrics.FilePath)
 	assert.Equal(5, churnmetrics.DeletedLinesCount)
@@ -79,15 +87,14 @@ func TestGetChurnMetricsInteractiveChurn(t *testing.T) {
 }
 
 func TestGetChurnMetricsInteractiveChurnNewFile(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
-	_, err := GetChurnMetricsWithWhitespace(repo, "cmd/root.go", "")
+	_, err := GetChurnMetricsWithWhitespace(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "cmd/root.go", "")
+
 	assert := assert.New(t)
 	assert.Equal("The specified file was a new file added in this commit. Hence, churn can't be calculated.", err.Error())
 }
 
 func TestGetChurnMetricsSelfChurn(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "c0263662b2172b3df51ae39f8075dd010573ab6b")
-	churnmetrics, _ := GetChurnMetricsWithWhitespace(repo, "matrics/diffmetrics_test.go", "")
+	churnmetrics, _ := GetChurnMetricsWithWhitespace(churnRepo, "c0263662b2172b3df51ae39f8075dd010573ab6b", "matrics/diffmetrics_test.go", "")
 	assert := assert.New(t)
 	assert.Equal("matrics/diffmetrics_test.go", churnmetrics.FilePath)
 	assert.Equal(65, churnmetrics.DeletedLinesCount)
@@ -100,8 +107,7 @@ func TestGetChurnMetricsSelfChurn(t *testing.T) {
 }
 
 func TestGetChurnMetricsWhitespaceExcludedAll(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "c800ce62fc8a10d5fe69adb283f06296820522c1")
-	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(repo, "src/main/java/com/webcheckers/ui/WebServer.java", "")
+	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(projectRepo, "c800ce62fc8a10d5fe69adb283f06296820522c1", "src/main/java/com/webcheckers/ui/WebServer.java", "")
 	assert := assert.New(t)
 	assert.Equal("src/main/java/com/webcheckers/ui/WebServer.java", churnmetrics.FilePath)
 	assert.Equal(12, churnmetrics.DeletedLinesCount)
@@ -116,8 +122,7 @@ func TestGetChurnMetricsWhitespaceExcludedAll(t *testing.T) {
 
 func TestGetChurnMetricsWhitespaceExcludedAllRange(t *testing.T) {
 	//https://github.com/ashishgalagali/SWEN610-project/compare/16c75b486a039bc34fcc5ac1ddad717d8bb49c01...7368d5fcb7eec950161ed9d13b55caf5961326b6?diff=split
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "16c75b486a039bc34fcc5ac1ddad717d8bb49c01")
-	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(repo, "README.md", "7368d5fcb7eec950161ed9d13b55caf5961326b6")
+	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(projectRepo, "16c75b486a039bc34fcc5ac1ddad717d8bb49c01", "README.md", "7368d5fcb7eec950161ed9d13b55caf5961326b6")
 	assert := assert.New(t)
 	assert.Equal("README.md", churnmetrics.FilePath)
 	assert.Equal(13, churnmetrics.DeletedLinesCount)
@@ -134,8 +139,7 @@ func TestGetChurnMetricsWhitespaceExcludedAllRange(t *testing.T) {
 
 }
 func TestGetChurnMetricsWhitespaceExcludedAllRangeRev(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/ashishgalagali/SWEN610-project", "7368d5fcb7eec950161ed9d13b55caf5961326b6")
-	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(repo, "README.md", "16c75b486a039bc34fcc5ac1ddad717d8bb49c01")
+	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(projectRepo, "7368d5fcb7eec950161ed9d13b55caf5961326b6", "README.md", "16c75b486a039bc34fcc5ac1ddad717d8bb49c01")
 	assert := assert.New(t)
 	assert.Equal("README.md", churnmetrics.FilePath)
 	assert.Equal(8, churnmetrics.DeletedLinesCount)
@@ -152,8 +156,7 @@ func TestGetChurnMetricsWhitespaceExcludedAllRangeRev(t *testing.T) {
 }
 
 func TestGetChurnMetricsWhitespaceExcludedInteractiveChurn(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
-	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(repo, "README.md", "")
+	churnmetrics, _ := GetChurnMetricsWhitespaceExcluded(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "README.md", "")
 	assert := assert.New(t)
 	assert.Equal("README.md", churnmetrics.FilePath)
 	assert.Equal(3, churnmetrics.DeletedLinesCount)
@@ -166,8 +169,7 @@ func TestGetChurnMetricsWhitespaceExcludedInteractiveChurn(t *testing.T) {
 }
 
 func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
-	churnmetrics := AggrChurnMetricsWithWhitespace(repo)
+	churnmetrics := AggrChurnMetricsWithWhitespace(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a")
 	assert := assert.New(t)
 	assert.Equal(29, churnmetrics.DeletedLinesCount)
 	assert.Equal(5, churnmetrics.InteractiveChurnCount)
@@ -177,8 +179,7 @@ func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
 }
 
 func TestAggrChurnMetricsWhitespaceExcluded(t *testing.T) {
-	repo := gitfuncs.Checkout("https://github.com/andymeneely/git-churn", "99992110e402f26ca9162f43c0e5a97b1278068a")
-	churnmetrics := AggrChurnMetricsWhitespaceExcluded(repo)
+	churnmetrics := AggrChurnMetricsWhitespaceExcluded(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a")
 	assert := assert.New(t)
 	assert.Equal(25, churnmetrics.DeletedLinesCount)
 	assert.Equal(3, churnmetrics.InteractiveChurnCount)

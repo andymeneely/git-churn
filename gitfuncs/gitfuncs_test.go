@@ -23,6 +23,13 @@ func TestRevList(t *testing.T) {
 	assert.Equal("c0263662b2172b3df51ae39f8075dd010573ab6b", commits[5].Hash.String())
 }
 
+//func TestRevList1(t *testing.T) {
+//	r := Checkout("https://github.com/andymeneely/git-churn", "a8b24a74bae39a941186e11969f70058a351327d")
+//	commits, _ := RevList(r, "a8b24a74bae39a941186e11969f70058a351327d", "d78e64088e11bc2fd4f36f0421be91ebac52008c")
+//	//assert := assert.New(t)
+//	fmt.Println(commits)
+//}
+
 func TestGetDistinctAuthorsEMailIds(t *testing.T) {
 	r := Checkout("https://github.com/andymeneely/git-churn", "d78e64088e11bc2fd4f36f0421be91ebac52008c")
 	authors, _ := GetDistinctAuthorsEMailIds(r, "d78e64088e11bc2fd4f36f0421be91ebac52008c", "cbd945aa1ddff933ffe70802bb6905e77f014bc9", "README.md")

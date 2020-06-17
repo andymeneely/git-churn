@@ -16,11 +16,13 @@ You will need Go language installed on your system. Ref: https://golang.org/doc/
 
 In general, `git churn` works much like `git log`, with some additional options.
 
+The `--repo` flag takes either github URL of the repo in which case it will clone the repo into the local memory and performs the operations, or you can specify the path to the cloned repo on your system. Use `"."` if the working directory is the repo to be used
 Show basic churn metrics for a specific commit (compared to it's parent) and file:
 ```
   $ ./git-churn --help
   $ ./git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1 --filepath src/main/java/com/webcheckers/ui/WebServer.java
   $ ./git-churn --repo https://github.com/andymeneely/git-churn --commit 00da33207bbb17a149d99301012006fbd86c80e4 --filepath testdata/file.txt --whitespace=false
+  $ /path/to/git-churn --repo /path/to/repo --commit c800ce62fc8a10d5fe69adb283f06296820522c1 --filepath src/main/java/com/webcheckers/ui/WebServer.java
 ```
 
 To get churn metrics for a range of commit:
@@ -28,6 +30,8 @@ To get churn metrics for a range of commit:
   $ ./git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1..5a2bf9f4da3de056dde3d9a9c18859de124d2602 --filepath src/main/java/com/webcheckers/ui/WebServer.java 
   $ ./git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1...5a2bf9f4da3de056dde3d9a9c18859de124d2602 --filepath src/main/java/com/webcheckers/ui/WebServer.java --whitespace=false
   $ ./git-churn --repo https://github.com/ashishgalagali/SWEN610-project --commit c800ce62fc8a10d5fe69adb283f06296820522c1...5a2bf9f4da3de056dde3d9a9c18859de124d2602 --whitespace=false 
+  $ /path/to/git-churn --repo . --commit c800ce62fc8a10d5fe69adb283f06296820522c1..5a2bf9f4da3de056dde3d9a9c18859de124d2602 --filepath src/main/java/com/webcheckers/ui/WebServer.java
+
 ```
 
 To show the aggregated churn metrics for a specific commit:
