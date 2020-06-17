@@ -2,12 +2,12 @@ package gitfuncs
 
 import (
 	"github.com/andymeneely/git-churn/helper"
+	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-git.v4/plumbing/revlist"
 	"sort"
 	"strings"
 
 	. "github.com/andymeneely/git-churn/print"
-	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -41,11 +41,12 @@ func LastCommit(repoUrl string) string {
 func Branches(repoUrl string) []string {
 	// Clones the given repository in memory, creating the remote, the local
 	// branches and fetching the objects, exactly as:
-	Info("git clone " + repoUrl)
+	//Info("git clone " + repoUrl)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: repoUrl,
 	})
+	//r, err := git.PlainOpen("/Users/raj.g/Documents/RA/git-churn")
 
 	CheckIfError(err)
 
@@ -91,12 +92,7 @@ func Tags(repoUrl string) []*plumbing.Reference {
 func Checkout(repoUrl, hash string) *git.Repository {
 	Info("git clone " + repoUrl)
 
-	r, err := git.Clone(memory.NewStorage(), memfs.New(), &git.CloneOptions{
-		URL: repoUrl,
-	})
-
-	CheckIfError(err)
-
+	r := GetRepo(repoUrl)
 	w, err := r.Worktree()
 	CheckIfError(err)
 
@@ -106,6 +102,25 @@ func Checkout(repoUrl, hash string) *git.Repository {
 		Hash: plumbing.NewHash(hash),
 	})
 	CheckIfError(err)
+	return r
+}
+
+func GetRepo(repoUrl string) *git.Repository {
+	defer helper.Duration(helper.Track("GetRepo"))
+
+	Info("git clone " + repoUrl)
+
+	var r *git.Repository
+	var err error
+	if strings.HasPrefix(repoUrl, "https://github.com") {
+		r, err = git.Clone(memory.NewStorage(), memfs.New(), &git.CloneOptions{
+			URL: repoUrl,
+		})
+		CheckIfError(err)
+	} else {
+		r, err = git.PlainOpen(repoUrl)
+		CheckIfError(err)
+	}
 	return r
 }
 
@@ -216,46 +231,11 @@ func FilesIttr(repoUrl string) *object.FileIter {
 }
 
 // Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
-func CommitDiffold(repo *git.Repository) (*object.Changes, *object.Tree, *object.Tree) {
+func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plumbing.Hash) (*object.Changes, *object.Tree, *object.Tree) {
 
-	head, err := repo.Head()
-	CheckIfError(err)
+	head := plumbing.NewHash(baseCommitId)
 
-	commitObj, err := repo.CommitObject(head.Hash())
-	CheckIfError(err)
-	//fmt.Println(commitObj.Author.Name)
-	//fmt.Println(commitObj.Author.Email)
-	//fmt.Println(commitObj.Author.When)
-	//fmt.Println(commitObj.Author.String())
-
-	parentCommitObj, err := commitObj.Parent(0)
-	CheckIfError(err)
-
-	// List the tree from HEAD
-	Info("git ls-tree -repo HEAD")
-
-	// ... retrieve the tree from the commit
-	tree, err := commitObj.Tree()
-	CheckIfError(err)
-
-	parentTree, err := parentCommitObj.Tree()
-	CheckIfError(err)
-	changes, err := parentTree.Diff(tree)
-	CheckIfError(err)
-
-	//fmt.Println(changes)
-	//fmt.Println(changes.Patch())
-
-	return &changes, tree, parentTree
-}
-
-// Returns the changes b/n the commit and it's parent, the tree corresponding to the commit and it's parent tree
-func CommitDiff(repo *git.Repository, parentCommitHash *plumbing.Hash) (*object.Changes, *object.Tree, *object.Tree) {
-
-	head, err := repo.Head()
-	CheckIfError(err)
-
-	commitObj, err := repo.CommitObject(head.Hash())
+	commitObj, err := repo.CommitObject(head)
 	CheckIfError(err)
 	//fmt.Println(commitObj.Author.Name)
 	//fmt.Println(commitObj.Author.Email)
@@ -374,21 +354,17 @@ func DeletedLineNumbersWhitespaceExcluded(changes *object.Changes) map[string][]
 	return fileDeletedLinesMap
 }
 
-func RevisionCommits(r *git.Repository, revision string) *plumbing.Hash {
+func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing.Hash {
 
 	// Resolve revision into a sha1 commit, only some revisions are resolved
 	// look at the doc to get more details
 	if revision == "" {
-		revision = "HEAD~1"
+		revision = baseCommitId + "~1"
 	}
 
 	Info("git rev-parse %s", revision)
-
 	h, err := r.ResolveRevision(plumbing.Revision(revision))
-
 	CheckIfError(err)
-
-	//fmt.Println(h.String())
 	return h
 }
 

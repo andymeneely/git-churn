@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"log"
+	. "github.com/andymeneely/git-churn/print"
 	"time"
 )
 
@@ -10,5 +10,5 @@ func Track(msg string) (string, time.Time) {
 }
 
 func Duration(msg string, start time.Time) {
-	log.Printf("%v: %v\n", msg, time.Since(start))
+	Info("%v: %v\n", msg, time.Since(start))
 }

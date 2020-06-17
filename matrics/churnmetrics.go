@@ -29,32 +29,31 @@ type FileChurnMetrics struct {
 	FileDiffMetrics FileDiffMetrics
 }
 
-func GetChurnMetricsWithWhitespace(repo *git.Repository, filePath, parentCommitId string) (*FileChurnMetrics, error) {
+func GetChurnMetricsWithWhitespace(repo *git.Repository, baseCommitId, filePath, parentCommitId string) (*FileChurnMetrics, error) {
 	defer helper.Duration(helper.Track("GetChurnMetricsWithWhitespace"))
-
-	parentCommitHash := gitfuncs.RevisionCommits(repo, parentCommitId)
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo, parentCommitHash)
+	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, parentCommitId)
+	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbers(changes)
 	churnMetrics := new(FileChurnMetrics)
-	err := calculateChurnMetrics(fileDeletedLinesMap, repo, filePath, churnMetrics, parentCommitHash)
+	err := calculateChurnMetrics(fileDeletedLinesMap, repo, baseCommitId, filePath, churnMetrics, parentCommitHash)
 	churnMetrics.FileDiffMetrics = *CalculateDiffMetricsWithWhitespace(filePath, changes, tree, parentTree)
 	return churnMetrics, err
 }
 
-func GetChurnMetricsWhitespaceExcluded(repo *git.Repository, filePath, parentCommitId string) (*FileChurnMetrics, error) {
+func GetChurnMetricsWhitespaceExcluded(repo *git.Repository, baseCommitId, filePath, parentCommitId string) (*FileChurnMetrics, error) {
 	defer helper.Duration(helper.Track("GetChurnMetricsWhitespaceExcluded"))
-	parentCommitHash := gitfuncs.RevisionCommits(repo, parentCommitId)
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo, parentCommitHash)
+	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, parentCommitId)
+	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
 
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbersWhitespaceExcluded(changes)
 	churnMetrics := new(FileChurnMetrics)
-	err := calculateChurnMetrics(fileDeletedLinesMap, repo, filePath, churnMetrics, parentCommitHash)
+	err := calculateChurnMetrics(fileDeletedLinesMap, repo, baseCommitId, filePath, churnMetrics, parentCommitHash)
 	diffMetrics, _ := CalculateDiffMetricsWhitespaceExcluded(filePath, changes, tree, parentTree)
 	churnMetrics.FileDiffMetrics = *diffMetrics
 	return churnMetrics, err
 }
 
-func calculateChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, filePath string, churnMetrics *FileChurnMetrics, parentCommitHash *plumbing.Hash) error {
+func calculateChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, baseCommitId string, filePath string, churnMetrics *FileChurnMetrics, parentCommitHash *plumbing.Hash) error {
 	deletedLines := fileDeletedLinesMap[filePath]
 	//REF: https://git-scm.com/docs/gitrevisions
 
@@ -64,8 +63,9 @@ func calculateChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repos
 	}
 	lines := blame.Lines
 
-	head, _ := repo.Head()
-	commitObj, err := repo.CommitObject(head.Hash())
+	head := plumbing.NewHash(baseCommitId)
+
+	commitObj, err := repo.CommitObject(head)
 	CheckIfError(err)
 	commitAuthor := commitObj.Author.Email
 
@@ -91,32 +91,32 @@ func calculateChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repos
 	return nil
 }
 
-func AggrChurnMetricsWithWhitespace(repo *git.Repository) *AggrChurMetrics {
+func AggrChurnMetricsWithWhitespace(repo *git.Repository, baseCommitId string) *AggrChurMetrics {
 	defer helper.Duration(helper.Track("AggrChurnMetricsWithWhitespace"))
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo, nil)
+	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, nil)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbers(changes)
 	churnMetrics := new(AggrChurMetrics)
-	calculateAggrChurnMetrics(fileDeletedLinesMap, repo, churnMetrics)
+	calculateAggrChurnMetrics(fileDeletedLinesMap, repo, baseCommitId, churnMetrics)
 	diffMetrics := AggrDiffMetricsWithWhitespace(changes, tree, parentTree)
 	churnMetrics.AggrDiffMetrics = *diffMetrics
 	return churnMetrics
 }
 
-func AggrChurnMetricsWhitespaceExcluded(repo *git.Repository) *AggrChurMetrics {
+func AggrChurnMetricsWhitespaceExcluded(repo *git.Repository, baseCommitId string) *AggrChurMetrics {
 	defer helper.Duration(helper.Track("AggrChurnMetricsWithWhitespace"))
-	changes, tree, parentTree := gitfuncs.CommitDiff(repo, nil)
+	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, nil)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbersWhitespaceExcluded(changes)
 	churnMetrics := new(AggrChurMetrics)
-	calculateAggrChurnMetrics(fileDeletedLinesMap, repo, churnMetrics)
+	calculateAggrChurnMetrics(fileDeletedLinesMap, repo, baseCommitId, churnMetrics)
 	diffMetrics, _ := AggrDiffMetricsWhitespaceExcluded(changes, tree, parentTree)
 	churnMetrics.AggrDiffMetrics = *diffMetrics
 	return churnMetrics
 }
 
-func calculateAggrChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, churnMetrics *AggrChurMetrics) {
-	parentCommitHash := gitfuncs.RevisionCommits(repo, "HEAD~1")
-	head, _ := repo.Head()
-	commitObj, err := repo.CommitObject(head.Hash())
+func calculateAggrChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, baseCommitId string, churnMetrics *AggrChurMetrics) {
+	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, "")
+	head := plumbing.NewHash(baseCommitId)
+	commitObj, err := repo.CommitObject(head)
 	CheckIfError(err)
 	commitAuthor := commitObj.Author.Email
 	totalDeletedLines := 0
