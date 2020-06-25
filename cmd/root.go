@@ -16,9 +16,9 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	pf := rootCmd.PersistentFlags()
 	pf.StringVarP(&repoUrl, "repo", "r", "", "Git Repository URL on which the churn metrics has to be computed")
-	print.CheckIfError(cobra.MarkFlagRequired(pf, "repo"))
+	//print.CheckIfError(cobra.MarkFlagRequired(pf, "repo"))
 	pf.StringVarP(&commitId, "commit", "c", "", "Commit hash for which the metrics has to be computed")
-	print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
+	//print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
 	pf.StringVarP(&filepath, "filepath", "f", "", "File path for the file on which the commit metrics has to be computed")
 	pf.BoolVarP(&whitespace, "whitespace", "w", true, "Excludes whitespaces while calculating the churn metrics is set to false")
 }
@@ -52,13 +52,17 @@ var (
 				commitId = secondCommitId
 			}
 
+			if repoUrl == "" {
+				repoUrl = "."
+			}
 			repo := gitfuncs.GetRepo(repoUrl)
+			print.Info(repoUrl + " " + commitId + " " + filepath + " " + firstCommitId)
 			if whitespace {
-				if filepath != "" {
-					churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, commitId, filepath, firstCommitId)
-				} else {
-					churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo, commitId)
-				}
+				//if filepath != "" {
+				churnMetrics, err = metrics.GetChurnMetricsWithWhitespace(repo, commitId, filepath, firstCommitId)
+				//} else {
+				//	churnMetrics = metrics.AggrChurnMetricsWithWhitespace(repo, commitId)
+				//}
 			} else {
 				if filepath != "" {
 					churnMetrics, err = metrics.GetChurnMetricsWhitespaceExcluded(repo, commitId, filepath, firstCommitId)

@@ -14,7 +14,6 @@ func TestBranches(t *testing.T) {
 }
 
 func TestRevList(t *testing.T) {
-
 	r := Checkout("https://github.com/andymeneely/git-churn", "d78e64088e11bc2fd4f36f0421be91ebac52008c")
 	commits, _ := RevList(r, "d78e64088e11bc2fd4f36f0421be91ebac52008c", "a8b24a74bae39a941186e11969f70058a351327d")
 	assert := assert.New(t)
@@ -23,12 +22,12 @@ func TestRevList(t *testing.T) {
 	assert.Equal("c0263662b2172b3df51ae39f8075dd010573ab6b", commits[5].Hash.String())
 }
 
-//func TestRevList1(t *testing.T) {
-//	r := Checkout("https://github.com/andymeneely/git-churn", "a8b24a74bae39a941186e11969f70058a351327d")
-//	commits, _ := RevList(r, "a8b24a74bae39a941186e11969f70058a351327d", "d78e64088e11bc2fd4f36f0421be91ebac52008c")
-//	//assert := assert.New(t)
-//	fmt.Println(commits)
-//}
+func TestRevList1(t *testing.T) {
+	r := GetRepo("https://github.com/ashishgalagali/SWEN610-project")
+	commits, _ := RevList(r, "c800ce62fc8a10d5fe69adb283f06296820522c1", "")
+	assert := assert.New(t)
+	assert.Equal(22, len(commits))
+}
 
 func TestGetDistinctAuthorsEMailIds(t *testing.T) {
 	r := Checkout("https://github.com/andymeneely/git-churn", "d78e64088e11bc2fd4f36f0421be91ebac52008c")

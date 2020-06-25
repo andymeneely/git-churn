@@ -271,7 +271,7 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 	return &changes, tree, parentTree
 }
 
-func DeletedLineNumbers(changes *object.Changes) map[string][]int {
+func DeletedLineNumbers(changes *object.Changes, filePath string) map[string][]int {
 	//changes, _, parentTree := CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
@@ -279,6 +279,16 @@ func DeletedLineNumbers(changes *object.Changes) map[string][]int {
 		//fmt.Println(patch)
 		lineCounter := 0
 		var deletedLines []int
+		fromFile, toFile := patch.Files()
+		var file string
+		if nil == fromFile {
+			file = toFile.Path()
+		} else {
+			file = fromFile.Path()
+		}
+		if filePath != "" && file != filePath {
+			continue
+		}
 		for _, chunk := range patch.Chunks() {
 			if chunk.Type() == 0 {
 				if chunk.Content()[len(chunk.Content())-1] == '\n' {
@@ -302,12 +312,8 @@ func DeletedLineNumbers(changes *object.Changes) map[string][]int {
 				lineCounter += patchLen
 			}
 		}
-		fromFile, toFile := patch.Files()
-		if nil == fromFile {
-			fileDeletedLinesMap[toFile.Path()] = deletedLines
-		} else {
-			fileDeletedLinesMap[fromFile.Path()] = deletedLines
-		}
+		fileDeletedLinesMap[file] = deletedLines
+
 	}
 	return fileDeletedLinesMap
 }
@@ -373,9 +379,13 @@ func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit
 	//TODO: should I reverse the begin and end?
 
 	commits := make([]*object.Commit, 0)
-	ref1hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
-	if err != nil {
-		return nil, err
+	var ref1hist []plumbing.Hash
+	var err error
+	if endCommit != "" {
+		ref1hist, err = revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	ref2hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(beginCommit)}, ref1hist)
 	if err != nil {
