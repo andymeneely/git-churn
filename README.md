@@ -44,59 +44,109 @@ To show the aggregated churn metrics for a specific commit:
 # Options
 ```
 Flags:
-  -c, --commit string     Commit hash for which the metrics has to be computed
-  -f, --filepath string   File path for the file on which the commit metrics has to be computed
-  -h, --help              help for git-churn
-  -r, --repo string       Git Repository URL on which the churn metrics has to be computed
-  -w, --whitespace        Excludes whitespaces while calculating the churn metrics if set to false (default true)
+  -a, --aggregate string   Aggregate the churn metrics. "commit": Aggregates all files in a commit. "all": Aggregate all files all commits and all files (default "commit")
+  -c, --commit string      Commit hash for which the metrics has to be computed
+  -f, --filepath string    File path for the file on which the commit metrics has to be computed
+  -h, --help               help for git-churn
+  -j, --json               Writes the JSON output to a file within a folder named churn-details
+  -p, --print              Prints the output in a human readable format (default true)
+  -r, --repo string        Git Repository URL on which the churn metrics has to be computed
+  -w, --whitespace         Excludes whitespaces while calculating the churn metrics is set to false (default true)
 ```
 
 # Sample Output
 
-For a perticular file
+For a commit range
 ```
 {
-  "FilePath": "src/main/java/com/webcheckers/ui/WebServer.java",
-  "DeletedLinesCount": 13,
-  "SelfChurnCount": 3,
-  "InteractiveChurnCount": 10,
-  "CommitAuthor": "ashishgalagali@gmail.com",
-  "ChurnDetails": {
-    "16123ab124432a058ed29e7d8fb2df52c310363b": "ashishgalagali@gmail.com",
-    "9708c9a9da36928fd0b7143c74aa61694999fe5d": "ks3057@rit.edu",
-    "979fe965043d49814c2fb7e7f5bae3461911b88b": "ashishgalagali@gmail.com",
-    "b742aaf3e500712668d6f76c9736637436ee695e": "ks3057@rit.edu",
-    "cef4dbea729fac483b43e130271c9e6efe93df33": "ks3057@rit.edu"
-  },
-  "FileDiffMetrics": {
-    "Insertions": 17,
-    "Deletions": 13,
-    "LinesBefore": 154,
-    "LinesAfter": 158,
-    "File": "src/main/java/com/webcheckers/ui/WebServer.java",
-    "NewFile": false,
-    "DeleteFile": false
-  }
+  "BaseCommitId": "8b0c2116cea2bbcc8d0075e762b887200a1898e1",
+  "CommitDetails": [
+    {
+      "CommitId": "3895dfa31c54adf83fdaffd90cf1b5fd4e5d7ff0",
+      "CommitAuthor": "mcuadros@gmail.com",
+      "DateTime": "2019-11-01 10:06:13 +0100 +0100",
+      "CommitMessage": "Merge pull request #1235 from jmahler/master\n\nfix broken link (s/ftp/https/)",
+      "ChurnMetrics": [
+        {
+          "FilePath": "_examples/ls-remote/main.go",
+          "DeletedLinesCount": 1,
+          "SelfChurnCount": 0,
+          "InteractiveChurnCount": 1,
+          "ChurnDetails": {
+            "b4fba7ede146be79cf65b89975250cf6869fb409": "v.cocaud@gmail.com"
+          }
+        },
+        {
+          "FilePath": "_examples/merge_base/helpers.go",
+          "DeletedLinesCount": 2,
+          "SelfChurnCount": 0,
+          "InteractiveChurnCount": 2,
+          "ChurnDetails": {
+            "66c4a36212ced976c33712ca4fb6abc6697f2654": "David.Pordomingo.F@gmail.com"
+          }
+        }
+      ]
+    },
+    {
+      "CommitId": "3ed21ff5df781c947aebcf1d602269b1206116e3",
+      "CommitAuthor": "jmmahler@gmail.com",
+      "DateTime": "2019-10-31 18:05:28 -0700 -0700",
+      "CommitMessage": "fix broken link (s/ftp/https/)\n\nSigned-off-by: Jeremiah Mahler <jmmahler@gmail.com>\n",
+      "ChurnMetrics": [
+        {
+          "FilePath": "_examples/ls-remote/main.go",
+          "DeletedLinesCount": 1,
+          "SelfChurnCount": 0,
+          "InteractiveChurnCount": 1,
+          "ChurnDetails": {
+            "b4fba7ede146be79cf65b89975250cf6869fb409": "v.cocaud@gmail.com"
+          }
+        },
+        {
+          "FilePath": "_examples/merge_base/helpers.go",
+          "DeletedLinesCount": 2,
+          "SelfChurnCount": 0,
+          "InteractiveChurnCount": 2,
+          "ChurnDetails": {
+            "66c4a36212ced976c33712ca4fb6abc6697f2654": "David.Pordomingo.F@gmail.com"
+          }
+        }
+      ]
+    }
+  ]
 }
-
 ```
 
 For all files in a commit aggregated 
 ```
 {
-  "DeletedLinesCount": 110,
-  "SelfChurnCount": 74,
-  "InteractiveChurnCount": 36,
-  "CommitAuthor": "ashishgalagali@gmail.com",
-  "AggrDiffMetrics": {
-    "Insertions": 225,
-    "Deletions": 110,
-    "LinesBefore": 3273,
-    "LinesAfter": 3386,
-    "FilesCount": 59,
-    "NewFiles": 4,
-    "DeletedFiles": 0
-  }
+  "BaseCommitId": "99992110e402f26ca9162f43c0e5a97b1278068a",
+  "AggCommitDetails": [
+    {
+      "CommitId": "180ec07da5d7a415b48fd3d9f7d5c9dd2925780e",
+      "CommitAuthor": "ashishgalagali@gmail.com",
+      "DateTime": "2020-03-28 00:59:14 -0400 -0400",
+      "CommitMessage": "Merge pull request #19 from andymeneely/diffMetrics\n\nGetting git diff metrics for a given commit and file",
+      "AggChurnMetrics": {
+        "FilesCount": 4,
+        "TotalDeletedLinesCount": 25,
+        "TotalSelfChurnCount": 22,
+        "TotalInteractiveChurnCount": 3
+      }
+    },
+    {
+      "CommitId": "3854e533318df4f5bb9a059c76ddd8bb2464a620",
+      "CommitAuthor": "ashishgalagali@gmail.com",
+      "DateTime": "2020-03-28 00:57:17 -0400 -0400",
+      "CommitMessage": "Diff Merics whitespace excluded\n",
+      "AggChurnMetrics": {
+        "FilesCount": 4,
+        "TotalDeletedLinesCount": 25,
+        "TotalSelfChurnCount": 22,
+        "TotalInteractiveChurnCount": 3
+      }
+    }
+  ]
 }
 ```
 
