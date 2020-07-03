@@ -18,7 +18,7 @@ import (
 func LastCommit(repoUrl string) string {
 	// Clones the given repository in memory, creating the remote, the local
 	// branches and fetching the objects, exactly as:
-	Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: repoUrl,
@@ -41,7 +41,7 @@ func LastCommit(repoUrl string) string {
 func Branches(repoUrl string) []string {
 	// Clones the given repository in memory, creating the remote, the local
 	// branches and fetching the objects, exactly as:
-	//Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: repoUrl,
@@ -66,7 +66,7 @@ func Branches(repoUrl string) []string {
 
 func Tags(repoUrl string) []*plumbing.Reference {
 
-	Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: repoUrl,
@@ -74,7 +74,7 @@ func Tags(repoUrl string) []*plumbing.Reference {
 
 	CheckIfError(err)
 	// List all tag references, both lightweight tags and annotated tags
-	Info("git show-ref --tag")
+	//PrintInBlue("git show-ref --tag")
 	var tagsArr []*plumbing.Reference
 
 	tagrefs, err := r.Tags()
@@ -90,14 +90,14 @@ func Tags(repoUrl string) []*plumbing.Reference {
 }
 
 func Checkout(repoUrl, hash string) *git.Repository {
-	Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	r := GetRepo(repoUrl)
 	w, err := r.Worktree()
 	CheckIfError(err)
 
 	// ... checking out to commit
-	Info("git checkout %s", hash)
+	//PrintInBlue("git checkout %s", hash)
 	err = w.Checkout(&git.CheckoutOptions{
 		Hash: plumbing.NewHash(hash),
 	})
@@ -108,7 +108,7 @@ func Checkout(repoUrl, hash string) *git.Repository {
 func GetRepo(repoUrl string) *git.Repository {
 	defer helper.Duration(helper.Track("GetRepo"))
 
-	Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	var r *git.Repository
 	var err error
@@ -205,7 +205,7 @@ func FilesIttr(repoUrl string) *object.FileIter {
 	//REF: https://github.com/src-d/go-git/blob/master/_examples/showcase/main.go
 	//Clones the given repository in memory, creating the remote, the local
 	//branches and fetching the objects, exactly as:
-	Info("git clone " + repoUrl)
+	//PrintInBlue("git clone " + repoUrl)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: repoUrl,
@@ -221,7 +221,7 @@ func FilesIttr(repoUrl string) *object.FileIter {
 	//fmt.Println(commit)
 
 	// List the tree from HEAD
-	Info("git ls-tree -r HEAD")
+	//PrintInBlue("git ls-tree -r HEAD")
 
 	// ... retrieve the tree from the commit
 	tree, err := commit.Tree()
@@ -254,7 +254,7 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 	}
 
 	// List the tree from HEAD
-	Info("git ls-tree -repo " + parentCommitObj.Hash.String())
+	//PrintInBlue("git ls-tree -repo " + parentCommitObj.Hash.String())
 
 	// ... retrieve the tree from the commit
 	tree, err := commitObj.Tree()
@@ -271,7 +271,7 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 	return &changes, tree, parentTree
 }
 
-func DeletedLineNumbers(changes *object.Changes) map[string][]int {
+func DeletedLineNumbers(changes *object.Changes, filePath string, whitespace bool) map[string][]int {
 	//changes, _, parentTree := CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
@@ -279,35 +279,49 @@ func DeletedLineNumbers(changes *object.Changes) map[string][]int {
 		//fmt.Println(patch)
 		lineCounter := 0
 		var deletedLines []int
+		fromFile, toFile := patch.Files()
+		var file string
+		if nil == fromFile {
+			file = toFile.Path()
+		} else {
+			file = fromFile.Path()
+		}
+		if filePath != "" && file != filePath {
+			continue
+		}
 		for _, chunk := range patch.Chunks() {
+			deletedPatch := strings.Split(chunk.Content(), "\n")
 			if chunk.Type() == 0 {
 				if chunk.Content()[len(chunk.Content())-1] == '\n' {
-					lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
+					lineCounter += len(deletedPatch) - 1
 				} else {
-					lineCounter += len(strings.Split(chunk.Content(), "\n"))
+					lineCounter += len(deletedPatch)
 				}
 				//lineCounter += len(strings.Split(chunk.Content(), "\n")) - 1
 			}
 			if chunk.Type() == 2 {
 				var patchLen int
 				if chunk.Content()[len(chunk.Content())-1] == '\n' {
-					patchLen = len(strings.Split(chunk.Content(), "\n")) - 1
+					patchLen = len(deletedPatch) - 1
 				} else {
-					patchLen = len(strings.Split(chunk.Content(), "\n"))
+					patchLen = len(deletedPatch)
 				}
-				for i := 1; i <= patchLen; i++ {
-					deletedLines = append(deletedLines, lineCounter+i)
-
+				if whitespace {
+					for i := 1; i <= patchLen; i++ {
+						deletedLines = append(deletedLines, lineCounter+i)
+					}
+				} else {
+					for i := 1; i <= patchLen; i++ {
+						if deletedPatch[i-1] != "" {
+							deletedLines = append(deletedLines, lineCounter+i)
+						}
+					}
 				}
 				lineCounter += patchLen
 			}
 		}
-		fromFile, toFile := patch.Files()
-		if nil == fromFile {
-			fileDeletedLinesMap[toFile.Path()] = deletedLines
-		} else {
-			fileDeletedLinesMap[fromFile.Path()] = deletedLines
-		}
+		fileDeletedLinesMap[file] = deletedLines
+
 	}
 	return fileDeletedLinesMap
 }
@@ -362,7 +376,7 @@ func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing
 		revision = baseCommitId + "~1"
 	}
 
-	Info("git rev-parse %s", revision)
+	//PrintInBlue("git rev-parse %s", revision)
 	h, err := r.ResolveRevision(plumbing.Revision(revision))
 	CheckIfError(err)
 	return h
@@ -373,9 +387,13 @@ func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit
 	//TODO: should I reverse the begin and end?
 
 	commits := make([]*object.Commit, 0)
-	ref1hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
-	if err != nil {
-		return nil, err
+	var ref1hist []plumbing.Hash
+	var err error
+	if endCommit != "" {
+		ref1hist, err = revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(endCommit)}, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	ref2hist, err := revlist.Objects(r.Storer, []plumbing.Hash{plumbing.NewHash(beginCommit)}, ref1hist)
 	if err != nil {

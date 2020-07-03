@@ -11,7 +11,7 @@ import (
 // passed before executing an example.
 func CheckArgs(arg ...string) {
 	if len(os.Args) < len(arg)+1 {
-		Warning("Usage: %s %s", os.Args[0], strings.Join(arg, " "))
+		PrintInCyan("Usage: %s %s", os.Args[0], strings.Join(arg, " "))
 		os.Exit(1)
 	}
 }
@@ -26,12 +26,25 @@ func CheckIfError(err error) {
 	os.Exit(1)
 }
 
-// Info should be used to describe the example commands that are about to run.
-func Info(format string, args ...interface{}) {
+// PrintInBlue should be used to describe the example commands that are about to run.
+func PrintInBlue(format string, args ...interface{}) {
 	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
 }
 
-// Warning should be used to display a warning
-func Warning(format string, args ...interface{}) {
+// PrintInCyan should be used to display a warning
+func PrintInCyan(format string, args ...interface{}) {
 	fmt.Printf("\x1b[36;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
+}
+
+func PrintInGreen(format string, args ...interface{}) {
+	fmt.Printf("\x1b[32;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
+}
+func PrintInYellow(format string, args ...interface{}) {
+	fmt.Printf("\x1b[33;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
+}
+func PrintInPink(format string, args ...interface{}) {
+	fmt.Printf("\x1b[35;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
+}
+func PrintInGrey(format string, args ...interface{}) {
+	fmt.Printf("\x1b[37;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
 }
