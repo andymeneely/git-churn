@@ -19,7 +19,7 @@ func init() {
 	pf.StringVarP(&commitId, "commit", "c", "", "Commit hash for which the metrics has to be computed")
 	//print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
 	pf.StringVarP(&filepath, "filepath", "f", "", "File path for the file on which the commit metrics has to be computed")
-	pf.StringVarP(&aggregate, "aggregate", "a", "commit", "Aggregate the churn metrics. \"commit\": Aggregates all files in a commit. \"all\": Aggregate all files all commits and all files")
+	pf.StringVarP(&aggregate, "aggregate", "a", "", "Aggregate the churn metrics. \"commit\": Aggregates all files in a commit. \"all\": Aggregate all files all commits and all files")
 	pf.BoolVarP(&whitespace, "whitespace", "w", true, "Excludes whitespaces while calculating the churn metrics is set to false")
 	pf.BoolVarP(&jsonOPToFile, "json", "j", false, "Writes the JSON output to a file within a folder named churn-details")
 	pf.BoolVarP(&printOP, "print", "p", true, "Prints the output in a human readable format")

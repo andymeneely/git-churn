@@ -15,9 +15,9 @@ func init() {
 	numcpu := runtime.NumCPU()
 	runtime.GOMAXPROCS(numcpu)
 
-	churnRepo = gitfuncs.GetRepo("https://github.com/andymeneely/git-churn")
+	churnRepo = gitfuncs.GetRepo("https://github.com/andymeneely/git-churn.git")
 	//churnRepo = gitfuncs.GetRepo("/Users/raj.g/Documents/RA/git-churn")
-	projectRepo = gitfuncs.GetRepo("https://github.com/ashishgalagali/SWEN610-project")
+	projectRepo = gitfuncs.GetRepo("https://github.com/ashishgalagali/SWEN610-project.git")
 	//projectRepo = gitfuncs.GetRepo("/Users/raj.g/Documents/projects/SWEN610-project")
 }
 
@@ -134,7 +134,7 @@ func TestGetChurnMetricsInteractiveChurn(t *testing.T) {
 	commitDetail := churnmetrics.CommitDetails[0]
 	assert.Equal("180ec07da5d7a415b48fd3d9f7d5c9dd2925780e", commitDetail.CommitId)
 	assert.Equal("ashishgalagali@gmail.com", commitDetail.CommitAuthor)
-	assert.Equal("2020-03-28 00:59:14 -0400 -0400", commitDetail.DateTime)
+	//assert.Equal("2020-03-28 00:59:14 -0400 -0400", commitDetail.DateTime)
 	assert.Equal("Merge pull request #19 from andymeneely/diffMetrics\n\nGetting git diff metrics for a given commit and file", commitDetail.CommitMessage)
 	assert.Equal(1, len(commitDetail.ChurnMetrics))
 	churnmetric := commitDetail.ChurnMetrics[0]
@@ -161,7 +161,7 @@ func TestGetChurnMetricsSelfChurn(t *testing.T) {
 	commitDetail := churnmetrics.CommitDetails[0]
 	assert.Equal("a8b24a74bae39a941186e11969f70058a351327d", commitDetail.CommitId)
 	assert.Equal("ashishgalagali@gmail.com", commitDetail.CommitAuthor)
-	assert.Equal("2020-03-30 21:32:45 -0400 -0400", commitDetail.DateTime)
+	//assert.Equal("2020-03-30 21:32:45 -0400 -0400", commitDetail.DateTime)
 	assert.Equal("Merge pull request #22 from andymeneely/cli\n\nAdded boolean flag to exclude whitespace+ Updated README", commitDetail.CommitMessage)
 	assert.Equal(1, len(commitDetail.ChurnMetrics))
 	churnmetric := commitDetail.ChurnMetrics[0]
@@ -194,33 +194,27 @@ func TestGetChurnMetricsWhitespaceExcludedAll(t *testing.T) {
 	assert.Equal("ashishgalagali@gmail.com", churnmetric.ChurnDetails["16123ab124432a058ed29e7d8fb2df52c310363b"])
 }
 
-//
-//func TestGetChurnMetricsWhitespaceExcludedAllRange(t *testing.T) {
-//https://github.com/ashishgalagali/SWEN610-project/compare/16c75b486a039bc34fcc5ac1ddad717d8bb49c01...7368d5fcb7eec950161ed9d13b55caf5961326b6?diff=split
-//churnmetrics, _ := GetChurnMetrics(projectRepo, "7368d5fcb7eec950161ed9d13b55caf5961326b6", "README.md", "16c75b486a039bc34fcc5ac1ddad717d8bb49c01", false, false, true)
-//assert := assert.New(t)
-//assert.Equal("7368d5fcb7eec950161ed9d13b55caf5961326b6", churnmetrics.BaseCommitId)
-//out, err := json.Marshal(churnmetrics)
-//if err != nil {
-//	panic(err)
-//}
-//fmt.Println(string(out))
-//assert.Equal(20, len(churnmetrics.CommitDetails))
-//commitDetail := churnmetrics.CommitDetails[1]
-//assert.Equal("cef4dbea729fac483b43e130271c9e6efe93df33", commitDetail.CommitId)
-//assert.Equal("ks3057@rit.edu", commitDetail.CommitAuthor)
-//assert.Equal("2019-11-28 02:33:55 -0500 EST", commitDetail.DateTime)
-//assert.Equal("implemented user wait and transition to game state\n", commitDetail.CommitMessage)
-//assert.Equal(1, len(commitDetail.ChurnMetrics))
-//churnmetric := commitDetail.ChurnMetrics[0]
-//assert.Equal("README.md", churnmetrics.FilePath)
-//assert.Equal(13, churnmetrics.DeletedLinesCount)
-//assert.Equal(6, churnmetrics.SelfChurnCount)
-//assert.Equal(7, churnmetrics.InteractiveChurnCount)
-//assert.Equal("ashishgalagali@gmail.com", churnmetrics.CommitAuthor)
-//assert.Equal(2, len(churnmetrics.ChurnDetails))
-//assert.Equal("42880317+ks3057@users.noreply.github.com", churnmetrics.ChurnDetails["7368d5fcb7eec950161ed9d13b55caf5961326b6"])
-//assert.Equal("ashishgalagali@gmail.com", churnmetrics.ChurnDetails["8e6f09133b61c6eeb83d4e529c14c3754c286774"])
+func TestGetChurnMetricsWhitespaceExcludedAllRange(t *testing.T) {
+	// https://github.com/ashishgalagali/SWEN610-project/compare/16c75b486a039bc34fcc5ac1ddad717d8bb49c01...7368d5fcb7eec950161ed9d13b55caf5961326b6?diff=split
+	churnmetrics, _ := GetChurnMetrics(projectRepo, "7368d5fcb7eec950161ed9d13b55caf5961326b6", "README.md", "16c75b486a039bc34fcc5ac1ddad717d8bb49c01", false, false, false)
+	assert := assert.New(t)
+	assert.Equal(2, len(churnmetrics.CommitDetails))
+	commitDetail := churnmetrics.CommitDetails[1]
+	assert.Equal("8e6f09133b61c6eeb83d4e529c14c3754c286774", commitDetail.CommitId)
+	assert.Equal("ashishgalagali@gmail.com", commitDetail.CommitAuthor)
+	//assert.Equal("2019-11-28 02:33:55 -0500 EST", commitDetail.DateTime)
+	assert.Equal("Updating readme\n", commitDetail.CommitMessage)
+	assert.Equal(1, len(commitDetail.ChurnMetrics))
+	churnmetric := commitDetail.ChurnMetrics[0]
+	assert.Equal("README.md", churnmetric.FilePath)
+	assert.Equal(4, churnmetric.DeletedLinesCount)
+	assert.Equal(4, churnmetric.SelfChurnCount)
+	assert.Equal(0, churnmetric.InteractiveChurnCount)
+	//assert.Equal("ashishgalagali@gmail.com", churnmetric.CommitAuthor)
+	assert.Equal(1, len(churnmetric.ChurnDetails))
+	assert.Equal("ashishgalagali@gmail.com", churnmetric.ChurnDetails["979fe965043d49814c2fb7e7f5bae3461911b88b"])
+}
+
 //assert.Equal(8, churnmetrics.FileDiffMetrics.Insertions)
 //assert.Equal(13, churnmetrics.FileDiffMetrics.Deletions)
 //assert.Equal(24, churnmetrics.FileDiffMetrics.LinesBefore)
@@ -251,14 +245,8 @@ func TestGetChurnMetricsWhitespaceExcludedAllRangeRev(t *testing.T) {
 	//assert.Equal(24, churnmetrics.FileDiffMetrics.LinesAfter)
 }
 
-//
 func TestGetChurnMetricsWhitespaceExcludedInteractiveChurn(t *testing.T) {
 	churnmetrics, _ := GetChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "README.md", "", false, false, false)
-	//out, err := json.Marshal(churnmetrics)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println(string(out))
 	assert := assert.New(t)
 	assert.Equal(36, len(churnmetrics.CommitDetails))
 	commitDetail := churnmetrics.CommitDetails[0]
@@ -277,14 +265,7 @@ func TestGetChurnMetricsWhitespaceExcludedInteractiveChurn(t *testing.T) {
 }
 
 func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
-	//var churnmetrics AggChurnMetricsOutput
 	churnmetrics := AggrChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "", "commit", true, false, false)
-
-	//out, err := json.Marshal(churnmetrics)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println(string(out))
 	assert := assert.New(t)
 	assert.Equal(39, len(churnmetrics.(AggChurnMetricsOutput).AggCommitDetails))
 	commitDetail := churnmetrics.(AggChurnMetricsOutput).AggCommitDetails[0]
@@ -298,16 +279,6 @@ func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
 	assert.Equal(24, churnmetric.TotalSelfChurnCount)
 	assert.Equal(4, churnmetric.FilesCount)
 }
-
-//func TestChurnMetricsWithWhitespaceProfiling(t *testing.T) {
-//	esRepo := gitfuncs.GetRepo("/Users/raj.g/Documents/Git_projects/go-git")
-//	churnmetrics, _ := GetChurnMetrics(esRepo, "8b0c2116cea2bbcc8d0075e762b887200a1898e1", "", "3e42b8cd3f20dad073db846348418aa218c7d23c", true, false, true)
-//	out, err := json.Marshal(churnmetrics)
-//	if err != nil {
-//		panic(err)
-//	}
-//	fmt.Println(string(out))
-//}
 
 func TestAggrChurnMetricsWhitespaceExcluded(t *testing.T) {
 	//churnmetrics := AggrChurnMetricsWhitespaceExcluded(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a")
@@ -332,3 +303,13 @@ func TestAggrChurnMetricsWhitespaceExcluded(t *testing.T) {
 	assert.Equal(22, churnmetric.TotalSelfChurnCount)
 	assert.Equal(4, churnmetric.FilesCount)
 }
+
+//func TestChurnMetricsWithWhitespaceProfiling(t *testing.T) {
+//	esRepo := gitfuncs.GetRepo("/Users/raj.g/Documents/Git_projects/elasticsearch")
+//	churnmetrics, _ := GetChurnMetrics(esRepo, "e33a0dfe77ad530db99bdd203434d16b23999be6", "", "91cc417aba84fce2b9b8a42794ee2411708b6c71", true, false, true)
+//	out, err := json.Marshal(churnmetrics)
+//	if err != nil {
+//		panic(err)
+//	}
+//	fmt.Println(string(out))
+//}
