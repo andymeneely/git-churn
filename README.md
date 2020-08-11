@@ -117,7 +117,7 @@ For a commit range
 }
 ```
 
-For all files in a commit aggregated 
+For all files in a commit aggregated
 ```
 {
   "BaseCommitId": "99992110e402f26ca9162f43c0e5a97b1278068a",
@@ -158,3 +158,11 @@ For all files in a commit aggregated
 * Number of authors
 * Number of committers
 * Inn
+
+# Testing
+
+To run automated tests:
+
+```
+$ go test ./...
+```
