@@ -12,6 +12,12 @@ You will need Go language installed on your system. Ref: https://golang.org/doc/
   $ go build
  ```
 
+To run all the test cases:
+
+```
+  $ go test -v ./...
+```
+
 # Usage
 
 In general, `git churn` works much like `git log`, with some additional options.

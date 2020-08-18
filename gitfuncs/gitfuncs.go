@@ -271,6 +271,10 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 	return &changes, tree, parentTree
 }
 
+// DeletedLineNumbers returns the map of file and the list of deleted lines
+// 	changes: the commitDiff changes
+//	filePath: if present, returns deleted lies only for that filepath
+//	whitespace: if false, neglects the blank deleted lines
 func DeletedLineNumbers(changes *object.Changes, filePath string, whitespace bool) map[string][]int {
 	//changes, _, parentTree := CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
@@ -368,6 +372,7 @@ func DeletedLineNumbersWhitespaceExcluded(changes *object.Changes) map[string][]
 	return fileDeletedLinesMap
 }
 
+// RevisionCommits returns the hash of the specified revision. If revision is empty then returns hash of baseCommitId~1
 func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing.Hash {
 
 	// Resolve revision into a sha1 commit, only some revisions are resolved
@@ -383,6 +388,7 @@ func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing
 }
 
 // RevList is native implementation of git rev-list command
+// 	Returns list of commit objects between the given commit hash sorted by date
 func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit, error) {
 	//TODO: should I reverse the begin and end?
 
@@ -438,6 +444,7 @@ func GetDistinctAuthorsEMailIds(r *git.Repository, beginCommit, endCommit, fileP
 
 }
 
+// Blame returns git.BlameResult (Last author who changed each line) for the the given has and file path
 func Blame(repo *git.Repository, hash *plumbing.Hash, path string) (*git.BlameResult, error) {
 
 	//TODO: It does not support the options mentioned in https://git-scm.com/docs/git-blame
