@@ -265,7 +265,7 @@ func TestGetChurnMetricsWhitespaceExcludedInteractiveChurn(t *testing.T) {
 }
 
 func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
-	churnmetrics := AggrChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "", "commit", true, false, false)
+	churnmetrics := AggrChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "", "commit", true, false, false, "")
 	assert := assert.New(t)
 	assert.Equal(39, len(churnmetrics.(AggChurnMetricsOutput).AggCommitDetails))
 	commitDetail := churnmetrics.(AggChurnMetricsOutput).AggCommitDetails[0]
@@ -282,7 +282,7 @@ func TestAggrChurnMetricsWithWhitespace(t *testing.T) {
 
 func TestAggrChurnMetricsWhitespaceExcluded(t *testing.T) {
 	//churnmetrics := AggrChurnMetricsWhitespaceExcluded(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a")
-	churnmetrics := AggrChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "", "commit", false, false, false)
+	churnmetrics := AggrChurnMetrics(churnRepo, "99992110e402f26ca9162f43c0e5a97b1278068a", "", "commit", false, false, false, "")
 	//out, err := json.Marshal(churnmetrics)
 	//if err != nil {
 	//	panic(err)
@@ -302,6 +302,33 @@ func TestAggrChurnMetricsWhitespaceExcluded(t *testing.T) {
 	assert.Equal(3, churnmetric.TotalInteractiveChurnCount)
 	assert.Equal(22, churnmetric.TotalSelfChurnCount)
 	assert.Equal(4, churnmetric.FilesCount)
+}
+
+func TestAggrAllChurnMetricsWhitespaceExcluded(t *testing.T) {
+	churnmetrics := AggrChurnMetrics(churnRepo, "6c170b139560734a0b7e386333e1b5b39ddee360", "", "all", false, false, false, "")
+
+	assert := assert.New(t)
+	assert.Equal(29, churnmetrics.(AggAllChurnMetricsOutput).TotalCommits)
+	commitDetail := churnmetrics.(AggAllChurnMetricsOutput)
+	assert.Equal("6c170b139560734a0b7e386333e1b5b39ddee360", commitDetail.BaseCommitId)
+	assert.Equal("a4ffac332e0f3bc12d45235f5501054ec9031f3c", commitDetail.ParentCommitId)
+	assert.Equal(8097, commitDetail.TotalDeletedLinesCount)
+	assert.Equal(7557, commitDetail.TotalSelfChurnCount)
+	assert.Equal(540, commitDetail.TotalInteractiveChurnCount)
+
+}
+
+func TestAggrAllChurnMetricsWhitespaceIncludedFileFilter(t *testing.T) {
+	churnmetrics := AggrChurnMetrics(churnRepo, "97cc3246a0837761ea3ed14acac9d98a34687218", "", "all", true, false, false, "README.md")
+	assert := assert.New(t)
+	assert.Equal(62, churnmetrics.(AggAllChurnMetricsOutput).TotalCommits)
+	commitDetail := churnmetrics.(AggAllChurnMetricsOutput)
+	assert.Equal("97cc3246a0837761ea3ed14acac9d98a34687218", commitDetail.BaseCommitId)
+	assert.Equal("79caa008ba1f9d06b34b4acc7c03d7fade185a63", commitDetail.ParentCommitId)
+	assert.Equal(625, commitDetail.TotalDeletedLinesCount)
+	assert.Equal(586, commitDetail.TotalSelfChurnCount)
+	assert.Equal(39, commitDetail.TotalInteractiveChurnCount)
+
 }
 
 //func TestChurnMetricsWithWhitespaceProfiling(t *testing.T) {

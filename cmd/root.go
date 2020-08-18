@@ -66,7 +66,7 @@ var (
 			if aggregate == "" {
 				_, err = metrics.GetChurnMetrics(repo, commitId, filepath, firstCommitId, whitespace, jsonOPToFile, printOP)
 			} else {
-				_ = metrics.AggrChurnMetrics(repo, commitId, firstCommitId, aggregate, whitespace, jsonOPToFile, printOP)
+				_ = metrics.AggrChurnMetrics(repo, commitId, firstCommitId, aggregate, whitespace, jsonOPToFile, printOP, filepath)
 			}
 
 			print.CheckIfError(err)

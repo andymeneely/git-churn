@@ -62,17 +62,21 @@ type AggChurnMetricsOutput struct {
 	AggCommitDetails []AggCommitDetails
 }
 
-type AggAllCommitDetails struct {
-	TotalCommits    int
-	AggChurnMetrics AggChurnMetrics
-}
-
 type AggAllChurnMetricsOutput struct {
-	BaseCommitId     string
-	ParentCommitId   string
-	AggCommitDetails AggAllCommitDetails
+	BaseCommitId               string
+	ParentCommitId             string
+	TotalCommits               int
+	TotalDeletedLinesCount     int
+	TotalSelfChurnCount        int
+	TotalInteractiveChurnCount int
 }
 
+// GetChurnMetrics Returns the Churn metrics details for the given repo
+// 		baseCommitId and parentCommitId are the two commits between which the churn details are requested.
+// If only one is present then root commit will be taken as default for other. If none is present then all the commits of the project are considered.
+// 		whitespace: if false neglects the deleted whitespaces.
+// 		jsonOPToFile: if true writes the JSON output to the a file
+// 		printOP: if true prints the output into the console in a human readable form
 func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitId string, whitespace bool, jsonOPToFile, printOP bool) (*ChurnMetricsOutput, error) {
 	defer helper.Duration(helper.Track("GetChurnMetrics"))
 	var err error
@@ -86,10 +90,10 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 		baseCommitId = baseCommitHash.String()
 	}
 	churnMetricsOutput.BaseCommitId = baseCommitId
-
 	if printOP {
+		// prints GIT-CHURN banner
 		fmt.Println("  ______  _              ______  _                          \n / _____)(_) _          / _____)| |                         \n| /  ___  _ | |_   ___ | /      | | _   _   _   ____  ____  \n| | (___)| ||  _) (___)| |      | || \\ | | | | / ___)|  _ \\ \n| \\____/|| || |__      | \\_____ | | | || |_| || |    | | | |\n \\_____/ |_| \\___)      \\______)|_| |_| \\____||_|    |_| |_|\n                                                            ")
-		PrintInGreen("Base commitID: " + baseCommitId)
+		PrintInGreen("Base commit ID: " + baseCommitId)
 		PrintInBlue("")
 	}
 
@@ -97,17 +101,22 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 	if len(commits) == 0 {
 		commits, err = gitfuncs.RevList(repo, parentCommitId, baseCommitId)
 	}
+	// neglect the 1st commit as we need not compare the commit with itself
 	commits = commits[1:]
 
+	// Channel to hold the commit details
 	commitsChannel := make(chan CommitDetails)
+
+	//This WaitGroup is used to wait for all the goroutines launched here to finish.
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(len(commits))
 
 	for _, commit := range commits {
 		go getCommitDetails(commit, commitsChannel, repo, baseCommitId, filePath, whitespace)
 	}
-	go processCommmitDetails(commitsChannel, &commitDetailsArr, printOP, &waitGroup)
+	go processCommitDetails(commitsChannel, &commitDetailsArr, printOP, &waitGroup)
 
+	// TODO: Research a better method to make sure all the threads are executed than using wait
 	time.Sleep(5000)
 	waitGroup.Wait()
 	close(commitsChannel)
@@ -123,6 +132,7 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 	return churnMetricsOutput, err
 }
 
+// writeJsonToFile write the Json output into a file named churn-metrics-op-<time> into churn-metrics dir
 func writeJsonToFile(output interface{}) {
 	var err error
 	_, err = os.Stat("churn-metrics")
@@ -132,7 +142,6 @@ func writeJsonToFile(output interface{}) {
 			log.Fatal(err)
 		}
 	}
-
 	f, err := os.Create(filepath.Join("churn-metrics", "churn-metrics-op-"+time.Now().Format(time.RFC3339)+".json"))
 	if err != nil {
 		fmt.Println(err)
@@ -146,23 +155,15 @@ func writeJsonToFile(output interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	//output :=
 	_, err = fmt.Fprintln(f, string(out))
 	CheckIfError(err)
 }
 
-func processCommmitDetails(commitsChannel chan CommitDetails, commitDetailsArr *[]CommitDetails, printOP bool, wg *sync.WaitGroup) {
+// processCommitDetails appends each CommitDetails from the commitsChannel into commitDetailsArr. Also prints each commit detail if printOP is true.
+func processCommitDetails(commitsChannel chan CommitDetails, commitDetailsArr *[]CommitDetails, printOP bool, wg *sync.WaitGroup) {
+	// TODO: Research a better method to make sure all the threads are executed than using wait
 	time.Sleep(100)
 	for commitDetails := range commitsChannel {
-		//for {
-		//	commitDetails, ok := <-commitsChannel
-		//	if !ok {
-		//		break
-		//	}
-		//fmt.Println("Processed: " + commitDetails.CommitId)
-		//if !ok {
-		//	break
-		//}
 		if len(commitDetails.ChurnMetrics) != 0 {
 			if printOP {
 				PrintInYellow("\tCommitID: " + commitDetails.CommitId)
@@ -191,12 +192,11 @@ func processCommmitDetails(commitsChannel chan CommitDetails, commitDetailsArr *
 			*commitDetailsArr = append(*commitDetailsArr, commitDetails)
 		}
 		wg.Done()
-		//fmt.Println("DONE")
 	}
 }
 
+// getCommitDetails adds commitDetails for the given commit into the commitsChannel
 func getCommitDetails(commit *object.Commit, commitsChannel chan CommitDetails, repo *git.Repository, baseCommitId string, filePath string, whitespace bool) {
-
 	commitDetails := new(CommitDetails)
 	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, commit.Hash.String())
 	commitDetails.CommitId = parentCommitHash.String()
@@ -206,49 +206,18 @@ func getCommitDetails(commit *object.Commit, commitsChannel chan CommitDetails, 
 	commitDetails.CommitAuthor = commitAuthor
 	commitDetails.DateTime = commitObj.Author.When.String()
 	commitDetails.CommitMessage = commitObj.Message
-	//if printOP {
-	//	PrintInYellow("\tCommitID: " + commitDetails.CommitId)
-	//	PrintInPink("\tCommit Author: " + commitDetails.CommitAuthor)
-	//	PrintInGrey("\tDate: " + commitDetails.DateTime)
-	//	PrintInBlue("\tMessage: " + strings.ReplaceAll(commitDetails.CommitMessage, "\n", " "))
-	//	PrintInBlue("")
-	//}
 	churnMetricsArr, _ := calculateChurnMetrics(repo, baseCommitId, filePath, commitAuthor, parentCommitHash, whitespace)
 	commitDetails.ChurnMetrics = churnMetricsArr
-	//if len(churnMetricsArr) != 0 {
-	//	commitDetailsArr = append(commitDetailsArr, *commitDetails)
-	//}
-	//if printOP {
-	//	PrintInBlue("")
-	//	PrintInBlue("")
-	//	PrintInBlue("")
-	//}
-	//wg.Done()
-	//fmt.Println("DONE")
-
 	commitsChannel <- *commitDetails
-
 }
 
-//func GetChurnMetricsWhitespaceExcluded(repo *git.Repository, baseCommitId, filePath, parentCommitId string) (*CommitDetails, error) {
-//	defer helper.Duration(helper.Track("GetChurnMetricsWhitespaceExcluded"))
-//	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, parentCommitId)
-//	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
-//	commitDetails := new(CommitDetails)
-//	_, err := calculateChurnMetrics(repo, baseCommitId, filePath, "", parentCommitHash, nil)
-//	diffMetrics, _ := CalculateDiffMetricsWhitespaceExcluded(filePath, changes, tree, parentTree)
-//	fmt.Println(diffMetrics)
-//	//commitDetails.FileDiffMetrics = *diffMetrics
-//	return commitDetails, err
-//}
-
+// calculateChurnMetrics calculate the churn metrics and returns the array of ChurnMetrics
 func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitAuthor string, parentCommitHash *plumbing.Hash, whitespace bool) ([]ChurnMetrics, error) {
 	//REF: https://git-scm.com/docs/gitrevisions
 	changes, _, _ := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbers(changes, filePath, whitespace)
 
 	churnMetricsArr := make([]ChurnMetrics, 0)
-	//head := plumbing.NewHash(baseCommitId)
 	churnMetricsChannel := make(chan ChurnMetrics)
 
 	var waitGroup sync.WaitGroup
@@ -256,7 +225,8 @@ func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitA
 	for filePath, deletedLines := range fileDeletedLinesMap {
 		go getChurnMetrics(deletedLines, filePath, churnMetricsChannel, repo, parentCommitHash, commitAuthor, &waitGroup)
 	}
-	go procressChurnMetrics(churnMetricsChannel, &churnMetricsArr, &waitGroup)
+	go processChurnMetrics(churnMetricsChannel, &churnMetricsArr, &waitGroup)
+	// TODO: Research a better method to make sure all the threads are executed than using wait
 	time.Sleep(5000)
 	waitGroup.Wait()
 
@@ -264,7 +234,10 @@ func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitA
 	return churnMetricsArr, nil
 }
 
-func procressChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr *[]ChurnMetrics, wg *sync.WaitGroup) {
+// processChurnMetrics appends each churnMetrics from churnMetricsChannel into churnMetricsArr
+func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr *[]ChurnMetrics, wg *sync.WaitGroup) {
+	// wait to make sure all the threads have completed execution and added the churnMetrics details into churnMetricsChannel
+	// TODO: Research a better method to make sure all the threads are executed than using wait
 	time.Sleep(500)
 	for {
 		churnMetrics, ok := <-churnMetricsChannel
@@ -276,17 +249,14 @@ func procressChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr
 	}
 }
 
+// getChurnMetrics adds ChurnMetrics with churn details and count into the churnMetricsChannel for the specified deleted lines
 func getChurnMetrics(deletedLines []int, filePath string, churnMetricsChannel chan ChurnMetrics, repo *git.Repository, parentCommitHash *plumbing.Hash, commitAuthor string, wg *sync.WaitGroup) {
-	//for filePath, deletedLines := range fileDeletedLinesMap {
 
 	if len(deletedLines) != 0 {
-		//deletedLines := fileDeletedLinesMap[filePath]
 		churnMetrics := new(ChurnMetrics)
 		blame, err := gitfuncs.Blame(repo, parentCommitHash, filePath)
 		if err == nil {
-
 			lines := blame.Lines
-
 			churnDetails := make(map[string]string)
 			selfChurnCount := 0
 			interactiveChurnCount := 0
@@ -297,7 +267,6 @@ func getChurnMetrics(deletedLines []int, filePath string, churnMetricsChannel ch
 				} else {
 					interactiveChurnCount += 1
 				}
-				//fmt.Println(lines[deletedLine-1].Text)
 				churnDetails[lines[deletedLine-1].Hash.String()] = churnAuthor
 			}
 			churnMetrics.DeletedLinesCount = len(deletedLines)
@@ -305,45 +274,31 @@ func getChurnMetrics(deletedLines []int, filePath string, churnMetricsChannel ch
 			churnMetrics.InteractiveChurnCount = interactiveChurnCount
 			churnMetrics.ChurnDetails = churnDetails
 			churnMetrics.FilePath = filePath
-			//if printOP {
-			//	PrintInCyan("\t\tFile Path: " + churnMetrics.FilePath)
-			//	fmt.Println("\t\tDeleted lines count: " + strconv.Itoa(churnMetrics.DeletedLinesCount))
-			//	fmt.Println("\t\tSelf Churn count: " + strconv.Itoa(churnMetrics.SelfChurnCount))
-			//	fmt.Println("\t\tInteractive Churn count: " + strconv.Itoa(churnMetrics.InteractiveChurnCount))
-			//	fmt.Println("\t\tChurn Details :")
-			//	for k, v := range churnDetails {
-			//		fmt.Println("\t\t\tcommit: " + k + ", author: " + v)
-			//	}
-			//	fmt.Println("")
-			//}
-
-			//churnMetrics.FileDiffMetrics = *CalculateDiffMetricsWithWhitespace(filePath, changes, tree, parentTree)
-			//churnMetricsArr = append(churnMetricsArr, *churnMetrics)
-
 			churnMetricsChannel <- *churnMetrics
 		} else {
+			// reduce the waitGroup count if there is no entry in this method
 			wg.Done()
 			//fmt.Println(filePath + " : The specified file was a new file added in this commit. Hence, churn can't be calculated.")
 		}
 	} else {
+		// reduce the waitGroup count if there is no entry in this method
 		wg.Done()
 	}
 }
 
-//}
-
-func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId string, aggregate string, whitespace bool, jsonOPToFile bool, printOP bool) interface{} {
+func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId string, aggregate string, whitespace bool, jsonOPToFile bool, printOP bool, filepath string) interface{} {
 	defer helper.Duration(helper.Track("AggrChurnMetrics"))
-	churnMetricsArr, _ := GetChurnMetrics(repo, baseCommitId, "", parentCommitId, whitespace, false, false)
+	churnMetricsArr, _ := GetChurnMetrics(repo, baseCommitId, filepath, parentCommitId, whitespace, false, false)
 	var aggChurnMetricsOutput interface{}
 	if printOP {
 		fmt.Println("  ______  _              ______  _                          \n / _____)(_) _          / _____)| |                         \n| /  ___  _ | |_   ___ | /      | | _   _   _   ____  ____  \n| | (___)| ||  _) (___)| |      | || \\ | | | | / ___)|  _ \\ \n| \\____/|| || |__      | \\_____ | | | || |_| || |    | | | |\n \\_____/ |_| \\___)      \\______)|_| |_| \\____||_|    |_| |_|\n                                                            ")
-		PrintInGreen("Base commitID: " + baseCommitId)
 		PrintInBlue("")
 	}
 	switch aggregate {
 	case "commit":
 		aggChurnMetricsOutput = getCommitAggChurnMetrics(churnMetricsArr, printOP)
+	case "all":
+		aggChurnMetricsOutput = getAllAggChurnMetrics(churnMetricsArr, printOP)
 	}
 	if jsonOPToFile {
 		writeJsonToFile(aggChurnMetricsOutput)
@@ -351,12 +306,45 @@ func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId 
 	return aggChurnMetricsOutput
 }
 
+// getAllAggChurnMetrics aggregates all the churn count from all the commit aggregated churn metrics and returns AggAllChurnMetricsOutput
+func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
+	var aggChurnMetricsOP = getCommitAggChurnMetrics(churnMetricsOutput, false)
+	var aggAllChurnMetricsOutput AggAllChurnMetricsOutput
+	aggAllChurnMetricsOutput.BaseCommitId = churnMetricsOutput.BaseCommitId
+	if len(churnMetricsOutput.CommitDetails) > 0 {
+		aggAllChurnMetricsOutput.ParentCommitId = churnMetricsOutput.CommitDetails[len(churnMetricsOutput.CommitDetails)-1].CommitId
+		var commitsCount, totalDeletedLinesCount, totalSelfChurnCount, totalInteractiveChurnCount int
+		for _, aggCommitDetails := range aggChurnMetricsOP.(AggChurnMetricsOutput).AggCommitDetails {
+			commitsCount++
+			totalDeletedLinesCount += aggCommitDetails.AggChurnMetrics.TotalDeletedLinesCount
+			totalSelfChurnCount += aggCommitDetails.AggChurnMetrics.TotalSelfChurnCount
+			totalInteractiveChurnCount += aggCommitDetails.AggChurnMetrics.TotalInteractiveChurnCount
+		}
+		aggAllChurnMetricsOutput.TotalCommits = commitsCount
+		aggAllChurnMetricsOutput.TotalInteractiveChurnCount = totalInteractiveChurnCount
+		aggAllChurnMetricsOutput.TotalSelfChurnCount = totalSelfChurnCount
+		aggAllChurnMetricsOutput.TotalDeletedLinesCount = totalDeletedLinesCount
+
+		if printOP {
+			PrintInYellow("Base Commit ID: " + aggAllChurnMetricsOutput.BaseCommitId)
+			PrintInPink("Parent Commit ID: " + aggAllChurnMetricsOutput.ParentCommitId)
+			PrintInBlue("Total Commits: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalCommits))
+			fmt.Println("\tTotal Deleted lines count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalDeletedLinesCount))
+			fmt.Println("\tTotal Self Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalSelfChurnCount))
+			fmt.Println("\tTotal Interactive Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalInteractiveChurnCount))
+		}
+	}
+	return aggAllChurnMetricsOutput
+}
+
+// getCommitAggChurnMetrics loops through each commitDetail and aggregates the churn counts and returns AggChurnMetricsOutput with aggCommitDetailsArr. It prints each aggCommitDetails if printOP is true
 func getCommitAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
 	var aggChurnMetricsOP AggChurnMetricsOutput
 	aggChurnMetricsOP.BaseCommitId = churnMetricsOutput.BaseCommitId
 	commitDetailsArr := churnMetricsOutput.CommitDetails
 	aggCommitDetailsArr := make([]AggCommitDetails, 0)
 
+	//TODO: implement parallelism
 	for _, commitDetail := range commitDetailsArr {
 		aggCommitDetails := new(AggCommitDetails)
 		aggCommitDetails.CommitMessage = commitDetail.CommitMessage
@@ -397,46 +385,3 @@ func getCommitAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bo
 	aggChurnMetricsOP.AggCommitDetails = aggCommitDetailsArr
 	return aggChurnMetricsOP
 }
-
-//func AggrChurnMetricsWhitespaceExcluded(repo *git.Repository, baseCommitId string) *AggrChurMetrics {
-//	defer helper.Duration(helper.Track("AggrChurnMetrics"))
-//	changes, tree, parentTree := gitfuncs.CommitDiff(repo, baseCommitId, nil)
-//	fileDeletedLinesMap := gitfuncs.DeletedLineNumbersWhitespaceExcluded(changes)
-//	churnMetrics := new(AggrChurMetrics)
-//	calculateAggrChurnMetrics(fileDeletedLinesMap, repo, baseCommitId, churnMetrics)
-//	diffMetrics, _ := AggrDiffMetricsWhitespaceExcluded(changes, tree, parentTree)
-//	churnMetrics.AggrDiffMetrics = *diffMetrics
-//	return churnMetrics
-//}
-
-//func calculateAggrChurnMetrics(fileDeletedLinesMap map[string][]int, repo *git.Repository, baseCommitId string, churnMetrics *AggrChurMetrics) {
-//	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, "")
-//	head := plumbing.NewHash(baseCommitId)
-//	commitObj, err := repo.CommitObject(head)
-//	CheckIfError(err)
-//	commitAuthor := commitObj.Author.Email
-//	totalDeletedLines := 0
-//	totalSelfChurnCount := 0
-//	totalInteractiveChurnCount := 0
-//	for filePath, deletedLines := range fileDeletedLinesMap {
-//		blame, err := gitfuncs.Blame(repo, parentCommitHash, filePath)
-//		if err == nil && blame != nil {
-//			lines := blame.Lines
-//
-//			for _, deletedLine := range deletedLines {
-//				churnAuthor := lines[deletedLine-1].Author
-//				if churnAuthor == commitAuthor {
-//					totalSelfChurnCount += 1
-//				} else {
-//					totalInteractiveChurnCount += 1
-//				}
-//				//fmt.Println(lines[deletedLine-1].Text)
-//			}
-//			totalDeletedLines += len(deletedLines)
-//		}
-//	}
-//	//churnMetrics.DeletedLinesCount = totalDeletedLines
-//	//churnMetrics.SelfChurnCount = totalSelfChurnCount
-//	//churnMetrics.CommitAuthor = commitAuthor
-//	//churnMetrics.InteractiveChurnCount = totalInteractiveChurnCount
-//}
