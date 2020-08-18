@@ -62,15 +62,13 @@ type AggChurnMetricsOutput struct {
 	AggCommitDetails []AggCommitDetails
 }
 
-type AggAllCommitDetails struct {
-	TotalCommits    int
-	AggChurnMetrics AggChurnMetrics
-}
-
 type AggAllChurnMetricsOutput struct {
-	BaseCommitId     string
-	ParentCommitId   string
-	AggCommitDetails AggAllCommitDetails
+	BaseCommitId               string
+	ParentCommitId             string
+	TotalCommits               int
+	TotalDeletedLinesCount     int
+	TotalSelfChurnCount        int
+	TotalInteractiveChurnCount int
 }
 
 // GetChurnMetrics Returns the Churn metrics details for the given repo
@@ -92,11 +90,10 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 		baseCommitId = baseCommitHash.String()
 	}
 	churnMetricsOutput.BaseCommitId = baseCommitId
-
 	if printOP {
 		// prints GIT-CHURN banner
 		fmt.Println("  ______  _              ______  _                          \n / _____)(_) _          / _____)| |                         \n| /  ___  _ | |_   ___ | /      | | _   _   _   ____  ____  \n| | (___)| ||  _) (___)| |      | || \\ | | | | / ___)|  _ \\ \n| \\____/|| || |__      | \\_____ | | | || |_| || |    | | | |\n \\_____/ |_| \\___)      \\______)|_| |_| \\____||_|    |_| |_|\n                                                            ")
-		PrintInGreen("Base commitID: " + baseCommitId)
+		PrintInGreen("Base commit ID: " + baseCommitId)
 		PrintInBlue("")
 	}
 
@@ -289,20 +286,19 @@ func getChurnMetrics(deletedLines []int, filePath string, churnMetricsChannel ch
 	}
 }
 
-func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId string, aggregate string, whitespace bool, jsonOPToFile bool, printOP bool) interface{} {
+func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId string, aggregate string, whitespace bool, jsonOPToFile bool, printOP bool, filepath string) interface{} {
 	defer helper.Duration(helper.Track("AggrChurnMetrics"))
-	churnMetricsArr, _ := GetChurnMetrics(repo, baseCommitId, "", parentCommitId, whitespace, false, false)
+	churnMetricsArr, _ := GetChurnMetrics(repo, baseCommitId, filepath, parentCommitId, whitespace, false, false)
 	var aggChurnMetricsOutput interface{}
 	if printOP {
 		fmt.Println("  ______  _              ______  _                          \n / _____)(_) _          / _____)| |                         \n| /  ___  _ | |_   ___ | /      | | _   _   _   ____  ____  \n| | (___)| ||  _) (___)| |      | || \\ | | | | / ___)|  _ \\ \n| \\____/|| || |__      | \\_____ | | | || |_| || |    | | | |\n \\_____/ |_| \\___)      \\______)|_| |_| \\____||_|    |_| |_|\n                                                            ")
-		PrintInGreen("Base commitID: " + baseCommitId)
 		PrintInBlue("")
 	}
 	switch aggregate {
 	case "commit":
 		aggChurnMetricsOutput = getCommitAggChurnMetrics(churnMetricsArr, printOP)
-	//case "all":
-	//	aggChurnMetricsOutput = getAllAggChurnMetrics(churnMetricsArr, printOP)
+	case "all":
+		aggChurnMetricsOutput = getAllAggChurnMetrics(churnMetricsArr, printOP)
 	}
 	if jsonOPToFile {
 		writeJsonToFile(aggChurnMetricsOutput)
@@ -310,9 +306,36 @@ func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId 
 	return aggChurnMetricsOutput
 }
 
-//func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
-//
-//}
+// getAllAggChurnMetrics aggregates all the churn count from all the commit aggregated churn metrics and returns AggAllChurnMetricsOutput
+func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
+	var aggChurnMetricsOP = getCommitAggChurnMetrics(churnMetricsOutput, false)
+	var aggAllChurnMetricsOutput AggAllChurnMetricsOutput
+	aggAllChurnMetricsOutput.BaseCommitId = churnMetricsOutput.BaseCommitId
+	if len(churnMetricsOutput.CommitDetails) > 0 {
+		aggAllChurnMetricsOutput.ParentCommitId = churnMetricsOutput.CommitDetails[len(churnMetricsOutput.CommitDetails)-1].CommitId
+		var commitsCount, totalDeletedLinesCount, totalSelfChurnCount, totalInteractiveChurnCount int
+		for _, aggCommitDetails := range aggChurnMetricsOP.(AggChurnMetricsOutput).AggCommitDetails {
+			commitsCount++
+			totalDeletedLinesCount += aggCommitDetails.AggChurnMetrics.TotalDeletedLinesCount
+			totalSelfChurnCount += aggCommitDetails.AggChurnMetrics.TotalSelfChurnCount
+			totalInteractiveChurnCount += aggCommitDetails.AggChurnMetrics.TotalInteractiveChurnCount
+		}
+		aggAllChurnMetricsOutput.TotalCommits = commitsCount
+		aggAllChurnMetricsOutput.TotalInteractiveChurnCount = totalInteractiveChurnCount
+		aggAllChurnMetricsOutput.TotalSelfChurnCount = totalSelfChurnCount
+		aggAllChurnMetricsOutput.TotalDeletedLinesCount = totalDeletedLinesCount
+
+		if printOP {
+			PrintInYellow("Base Commit ID: " + aggAllChurnMetricsOutput.BaseCommitId)
+			PrintInPink("Parent Commit ID: " + aggAllChurnMetricsOutput.ParentCommitId)
+			PrintInBlue("Total Commits: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalCommits))
+			fmt.Println("\tTotal Deleted lines count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalDeletedLinesCount))
+			fmt.Println("\tTotal Self Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalSelfChurnCount))
+			fmt.Println("\tTotal Interactive Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalInteractiveChurnCount))
+		}
+	}
+	return aggAllChurnMetricsOutput
+}
 
 // getCommitAggChurnMetrics loops through each commitDetail and aggregates the churn counts and returns AggChurnMetricsOutput with aggCommitDetailsArr. It prints each aggCommitDetails if printOP is true
 func getCommitAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
@@ -321,6 +344,7 @@ func getCommitAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bo
 	commitDetailsArr := churnMetricsOutput.CommitDetails
 	aggCommitDetailsArr := make([]AggCommitDetails, 0)
 
+	//TODO: implement parallelism
 	for _, commitDetail := range commitDetailsArr {
 		aggCommitDetails := new(AggCommitDetails)
 		aggCommitDetails.CommitMessage = commitDetail.CommitMessage
