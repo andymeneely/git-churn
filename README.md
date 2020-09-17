@@ -164,3 +164,9 @@ For all files in a commit aggregated
 * Number of authors
 * Number of committers
 * Inn
+
+
+# UML
+Generated using https://www.dumels.com/
+
+![Alt text](git-churn_UML.svg?raw=true "UML")
