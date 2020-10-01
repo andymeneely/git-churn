@@ -1,7 +1,6 @@
 package helper
 
 import (
-	. "github.com/andymeneely/git-churn/print"
 	"time"
 )
 
@@ -12,5 +11,6 @@ func Track(msg string) (string, time.Time) {
 
 // Duration prints the time since start with the msg.
 func Duration(msg string, start time.Time) {
-	PrintInBlue("%v: %v\n", msg, time.Since(start))
+	//PrintInBlue("%v: %v\n", msg, time.Since(start))
+	INFO.Println(msg, time.Since(start))
 }

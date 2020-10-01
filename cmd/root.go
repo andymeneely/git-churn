@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/andymeneely/git-churn/gitfuncs"
-	metrics "github.com/andymeneely/git-churn/matrics"
+	"github.com/andymeneely/git-churn/helper"
+	metrics "github.com/andymeneely/git-churn/metrics"
 	"github.com/andymeneely/git-churn/print"
 	"github.com/spf13/cobra"
 	"os"
@@ -40,6 +41,7 @@ var (
 		Long: `git-churn gives the churn metrics like insertions, deletions, etc for the given commit hash in the repo specified.
                 Complete documentation is available at https://github.com/andymeneely/git-churn`,
 		Run: func(cmd *cobra.Command, args []string) {
+			helper.INFO.Println("\n Processing new request\n")
 			//var churnMetrics interface{}
 			var err error
 			commitIds := strings.Split(commitId, "..")
@@ -62,6 +64,7 @@ var (
 			}
 			repo := gitfuncs.GetRepo(repoUrl)
 			print.PrintInBlue(repoUrl + " " + commitId + " " + filepath + " " + firstCommitId)
+			helper.INFO.Println("Generating git-churn for the following: \n" + "Repo:" + repoUrl + " " + " commitId:" + commitId + " " + " filepath:" + filepath + " " + " firstCommitId:" + firstCommitId)
 
 			if aggregate == "" {
 				_, err = metrics.GetChurnMetrics(repo, commitId, filepath, firstCommitId, whitespace, jsonOPToFile, printOP)

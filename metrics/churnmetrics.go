@@ -78,6 +78,8 @@ type AggAllChurnMetricsOutput struct {
 // 		jsonOPToFile: if true writes the JSON output to the a file
 // 		printOP: if true prints the output into the console in a human readable form
 func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitId string, whitespace bool, jsonOPToFile, printOP bool) (*ChurnMetricsOutput, error) {
+	helper.INFO.Println("INSIDE : GetChurnMetrics")
+
 	defer helper.Duration(helper.Track("GetChurnMetrics"))
 	var err error
 	churnMetricsOutput := new(ChurnMetricsOutput)
@@ -105,21 +107,27 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 	commits = commits[1:]
 
 	// Channel to hold the commit details
-	commitsChannel := make(chan CommitDetails)
+	commitsChannel := make(chan *object.Commit, 10)
+	commitDetailsChannel := make(chan CommitDetails, 10)
 
-	//This WaitGroup is used to wait for all the goroutines launched here to finish.
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(commits))
+	go allocate(commitsChannel, commits)
+	done := make(chan bool)
 
-	for _, commit := range commits {
-		go getCommitDetails(commit, commitsChannel, repo, baseCommitId, filePath, whitespace)
+	go processCommitDetails(commitDetailsChannel, &commitDetailsArr, printOP, done)
+	noOfWorkers := 10
+	//createWorkerPool(noOfWorkers)
+
+	var wg sync.WaitGroup
+	for i := 0; i < noOfWorkers; i++ {
+		wg.Add(1)
+		go getCommitDetails(commitsChannel, commitDetailsChannel, repo, baseCommitId, filePath, whitespace, &wg)
 	}
-	go processCommitDetails(commitsChannel, &commitDetailsArr, printOP, &waitGroup)
+	wg.Wait()
+	helper.INFO.Println("Closed commitDetailsChannel CHANNEL!!!!!")
+	close(commitDetailsChannel)
 
-	// TODO: Research a better method to make sure all the threads are executed than using wait
-	time.Sleep(5000)
-	waitGroup.Wait()
-	close(commitsChannel)
+	helper.INFO.Println("PROCESSED ALL " + strconv.Itoa(len(commitDetailsArr)))
+	<-done
 	//  sorts by datetime
 	sort.Slice(commitDetailsArr, func(i, j int) bool { return commitDetailsArr[i].DateTime > commitDetailsArr[j].DateTime })
 
@@ -130,6 +138,13 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 	}
 
 	return churnMetricsOutput, err
+}
+
+func allocate(commitsChannel chan *object.Commit, commits []*object.Commit) {
+	for _, commit := range commits {
+		commitsChannel <- commit
+	}
+	close(commitsChannel)
 }
 
 // writeJsonToFile write the Json output into a file named churn-metrics-op-<time> into churn-metrics dir
@@ -160,10 +175,12 @@ func writeJsonToFile(output interface{}) {
 }
 
 // processCommitDetails appends each CommitDetails from the commitsChannel into commitDetailsArr. Also prints each commit detail if printOP is true.
-func processCommitDetails(commitsChannel chan CommitDetails, commitDetailsArr *[]CommitDetails, printOP bool, wg *sync.WaitGroup) {
+func processCommitDetails(commitDetailsChannel chan CommitDetails, commitDetailsArr *[]CommitDetails, printOP bool, done chan bool) {
 	// TODO: Research a better method to make sure all the threads are executed than using wait
-	time.Sleep(100)
-	for commitDetails := range commitsChannel {
+	helper.INFO.Println("INSIDE : processCommitDetails")
+
+	//time.Sleep(100)
+	for commitDetails := range commitDetailsChannel {
 		if len(commitDetails.ChurnMetrics) != 0 {
 			if printOP {
 				PrintInYellow("\tCommitID: " + commitDetails.CommitId)
@@ -191,53 +208,94 @@ func processCommitDetails(commitsChannel chan CommitDetails, commitDetailsArr *[
 			}
 			*commitDetailsArr = append(*commitDetailsArr, commitDetails)
 		}
-		wg.Done()
+		//wg.Done()
 	}
+	done <- true
 }
 
 // getCommitDetails adds commitDetails for the given commit into the commitsChannel
-func getCommitDetails(commit *object.Commit, commitsChannel chan CommitDetails, repo *git.Repository, baseCommitId string, filePath string, whitespace bool) {
-	commitDetails := new(CommitDetails)
-	parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, commit.Hash.String())
-	commitDetails.CommitId = parentCommitHash.String()
-	commitObj, err := repo.CommitObject(*parentCommitHash)
-	CheckIfError(err)
-	commitAuthor := commitObj.Author.Email
-	commitDetails.CommitAuthor = commitAuthor
-	commitDetails.DateTime = commitObj.Author.When.String()
-	commitDetails.CommitMessage = commitObj.Message
-	churnMetricsArr, _ := calculateChurnMetrics(repo, baseCommitId, filePath, commitAuthor, parentCommitHash, whitespace)
-	commitDetails.ChurnMetrics = churnMetricsArr
-	commitsChannel <- *commitDetails
+func getCommitDetails(commitsChannel chan *object.Commit, commitsDetailsChannel chan CommitDetails, repo *git.Repository, baseCommitId string, filePath string, whitespace bool, wg *sync.WaitGroup) {
+	helper.INFO.Println("INSIDE : getCommitDetails")
+	for commit := range commitsChannel {
+		time.Sleep(2000)
+		commitDetails := new(CommitDetails)
+		parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, commit.Hash.String())
+		commitDetails.CommitId = parentCommitHash.String()
+		commitObj, err := repo.CommitObject(*parentCommitHash)
+		CheckIfError(err)
+		commitAuthor := commitObj.Author.Email
+		commitDetails.CommitAuthor = commitAuthor
+		commitDetails.DateTime = commitObj.Author.When.String()
+		commitDetails.CommitMessage = commitObj.Message
+		churnMetricsArr, _ := calculateChurnMetrics(repo, baseCommitId, filePath, commitAuthor, parentCommitHash, whitespace)
+		commitDetails.ChurnMetrics = churnMetricsArr
+		commitsDetailsChannel <- *commitDetails
+	}
+	wg.Done()
+}
+
+type FileDeletedLines struct {
+	file         string
+	deletedLines []int
 }
 
 // calculateChurnMetrics calculate the churn metrics and returns the array of ChurnMetrics
 func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitAuthor string, parentCommitHash *plumbing.Hash, whitespace bool) ([]ChurnMetrics, error) {
 	//REF: https://git-scm.com/docs/gitrevisions
+	helper.INFO.Println("INSIDE : calculateChurnMetrics")
 	changes, _, _ := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbers(changes, filePath, whitespace)
 
 	churnMetricsArr := make([]ChurnMetrics, 0)
-	churnMetricsChannel := make(chan ChurnMetrics)
+	churnMetricsChannel := make(chan ChurnMetrics, 2)
+	ipFileChannel := make(chan FileDeletedLines, 2)
 
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(fileDeletedLinesMap))
-	for filePath, deletedLines := range fileDeletedLinesMap {
-		go getChurnMetrics(deletedLines, filePath, churnMetricsChannel, repo, parentCommitHash, commitAuthor, &waitGroup)
+	go allocateFiles(ipFileChannel, fileDeletedLinesMap)
+	done := make(chan bool)
+	go processChurnMetrics(churnMetricsChannel, &churnMetricsArr, done)
+
+	noOfWorkers := 2
+	//createWorkerPool(noOfWorkers)
+
+	var wg sync.WaitGroup
+	for i := 0; i < noOfWorkers; i++ {
+		wg.Add(1)
+		go getChurnMetrics(ipFileChannel, churnMetricsChannel, repo, parentCommitHash, commitAuthor, &wg)
 	}
-	go processChurnMetrics(churnMetricsChannel, &churnMetricsArr, &waitGroup)
-	// TODO: Research a better method to make sure all the threads are executed than using wait
-	time.Sleep(5000)
-	waitGroup.Wait()
-
+	wg.Wait()
+	helper.INFO.Println("Closed commitDetailsChannel CHANNEL!!!!!")
 	close(churnMetricsChannel)
+
+	helper.INFO.Println("PROCESSED ALL " + strconv.Itoa(len(churnMetricsChannel)))
+	<-done
+
+	//var waitGroup sync.WaitGroup
+	//waitGroup.Add(len(fileDeletedLinesMap))
+	//for filePath, deletedLines := range fileDeletedLinesMap {
+	//	//go getChurnMetrics(deletedLines, filePath, churnMetricsChannel, repo, parentCommitHash, commitAuthor, &waitGroup)
+	//}
+	////go processChurnMetrics(churnMetricsChannel, &churnMetricsArr, &waitGroup)
+	//// TODO: Research a better method to make sure all the threads are executed than using wait
+	//time.Sleep(5000)
+	//waitGroup.Wait()
+	//
+	//close(churnMetricsChannel)
+
 	return churnMetricsArr, nil
 }
 
+func allocateFiles(ipChannel chan FileDeletedLines, fileDeletedLinesMap map[string][]int) {
+	for filePath, deletedLines := range fileDeletedLinesMap {
+		ipChannel <- FileDeletedLines{filePath, deletedLines}
+	}
+	close(ipChannel)
+}
+
 // processChurnMetrics appends each churnMetrics from churnMetricsChannel into churnMetricsArr
-func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr *[]ChurnMetrics, wg *sync.WaitGroup) {
+func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr *[]ChurnMetrics, done chan bool) {
 	// wait to make sure all the threads have completed execution and added the churnMetrics details into churnMetricsChannel
 	// TODO: Research a better method to make sure all the threads are executed than using wait
+	helper.INFO.Println("INSIDE : processChurnMetrics")
 	time.Sleep(500)
 	for {
 		churnMetrics, ok := <-churnMetricsChannel
@@ -245,45 +303,42 @@ func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr 
 			break
 		}
 		*churnMetricsArr = append(*churnMetricsArr, churnMetrics)
-		wg.Done()
+		//wg.Done()
 	}
+	done <- true
 }
 
 // getChurnMetrics adds ChurnMetrics with churn details and count into the churnMetricsChannel for the specified deleted lines
-func getChurnMetrics(deletedLines []int, filePath string, churnMetricsChannel chan ChurnMetrics, repo *git.Repository, parentCommitHash *plumbing.Hash, commitAuthor string, wg *sync.WaitGroup) {
-
-	if len(deletedLines) != 0 {
-		churnMetrics := new(ChurnMetrics)
-		blame, err := gitfuncs.Blame(repo, parentCommitHash, filePath)
-		if err == nil {
-			lines := blame.Lines
-			churnDetails := make(map[string]string)
-			selfChurnCount := 0
-			interactiveChurnCount := 0
-			for _, deletedLine := range deletedLines {
-				churnAuthor := lines[deletedLine-1].Author
-				if churnAuthor == commitAuthor {
-					selfChurnCount += 1
-				} else {
-					interactiveChurnCount += 1
+func getChurnMetrics(ipFileChannel chan FileDeletedLines, churnMetricsChannel chan ChurnMetrics, repo *git.Repository, parentCommitHash *plumbing.Hash, commitAuthor string, wg *sync.WaitGroup) {
+	helper.INFO.Println("INSIDE : getChurnMetrics")
+	for file := range ipFileChannel {
+		if len(file.deletedLines) != 0 {
+			churnMetrics := new(ChurnMetrics)
+			blame, err := gitfuncs.Blame(repo, parentCommitHash, file.file)
+			if err == nil {
+				lines := blame.Lines
+				churnDetails := make(map[string]string)
+				selfChurnCount := 0
+				interactiveChurnCount := 0
+				for _, deletedLine := range file.deletedLines {
+					churnAuthor := lines[deletedLine-1].Author
+					if churnAuthor == commitAuthor {
+						selfChurnCount += 1
+					} else {
+						interactiveChurnCount += 1
+					}
+					churnDetails[lines[deletedLine-1].Hash.String()] = churnAuthor
 				}
-				churnDetails[lines[deletedLine-1].Hash.String()] = churnAuthor
+				churnMetrics.DeletedLinesCount = len(file.deletedLines)
+				churnMetrics.SelfChurnCount = selfChurnCount
+				churnMetrics.InteractiveChurnCount = interactiveChurnCount
+				churnMetrics.ChurnDetails = churnDetails
+				churnMetrics.FilePath = file.file
+				churnMetricsChannel <- *churnMetrics
 			}
-			churnMetrics.DeletedLinesCount = len(deletedLines)
-			churnMetrics.SelfChurnCount = selfChurnCount
-			churnMetrics.InteractiveChurnCount = interactiveChurnCount
-			churnMetrics.ChurnDetails = churnDetails
-			churnMetrics.FilePath = filePath
-			churnMetricsChannel <- *churnMetrics
-		} else {
-			// reduce the waitGroup count if there is no entry in this method
-			wg.Done()
-			//fmt.Println(filePath + " : The specified file was a new file added in this commit. Hence, churn can't be calculated.")
 		}
-	} else {
-		// reduce the waitGroup count if there is no entry in this method
-		wg.Done()
 	}
+	wg.Done()
 }
 
 func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId string, aggregate string, whitespace bool, jsonOPToFile bool, printOP bool, filepath string) interface{} {
