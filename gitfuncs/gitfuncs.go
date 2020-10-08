@@ -9,11 +9,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/revlist"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"sort"
-	"strconv"
 	"strings"
 
 	. "github.com/andymeneely/git-churn/print"
-	//"github.com/go-git/go-git/v5"
 )
 
 func LastCommit(repoUrl string) string {
@@ -113,16 +111,15 @@ func GetRepo(repoUrl string) *git.Repository {
 
 	var r *git.Repository
 	var err error
-	//TODO: if user specifies in-memory, then clone from the local path
-	if strings.HasPrefix(repoUrl, "https://github.com") {
-		r, err = git.Clone(memory.NewStorage(), memfs.New(), &git.CloneOptions{
-			URL: repoUrl,
-		})
-		CheckIfError(err)
-	} else {
-		r, err = git.PlainOpen(repoUrl)
-		CheckIfError(err)
-	}
+	//if strings.HasPrefix(repoUrl, "https://github.com") {
+	r, err = git.Clone(memory.NewStorage(), memfs.New(), &git.CloneOptions{
+		URL: repoUrl,
+	})
+	CheckIfError(err)
+	//} else {
+	//	r, err = git.PlainOpen(repoUrl)
+	//	CheckIfError(err)
+	//}
 	return r
 }
 
@@ -254,7 +251,7 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 		parentCommitObj, err = repo.CommitObject(*parentCommitHash)
 		CheckIfError(err)
 	}
-	helper.INFO.Println("Getting the commit diff between " + baseCommitId + " & " + parentCommitObj.Hash.String())
+	//helper.INFO.Println("Getting the commit diff between " + baseCommitId + " & " + parentCommitObj.Hash.String())
 
 	// List the tree from HEAD
 	//PrintInBlue("git ls-tree -repo " + parentCommitObj.Hash.String())
@@ -279,7 +276,7 @@ func CommitDiff(repo *git.Repository, baseCommitId string, parentCommitHash *plu
 //	filePath: if present, returns deleted lies only for that filepath
 //	whitespace: if false, neglects the blank deleted lines
 func DeletedLineNumbers(changes *object.Changes, filePath string, whitespace bool) map[string][]int {
-	helper.INFO.Println("Getting deleted lines for  " + strconv.Itoa(changes.Len()) + " changes")
+	//helper.INFO.Println("Getting deleted lines for  " + strconv.Itoa(changes.Len()) + " changes")
 	//changes, _, parentTree := CommitDiff(repo, parentCommitHash)
 	patch, _ := changes.Patch()
 	fileDeletedLinesMap := make(map[string][]int)
@@ -384,7 +381,7 @@ func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing
 	if revision == "" {
 		revision = baseCommitId + "~1"
 	}
-	helper.INFO.Println("Getting revision commit hash for " + revision)
+	//helper.INFO.Println("Getting revision commit hash for " + revision)
 	//PrintInBlue("git rev-parse %s", revision)
 	h, err := r.ResolveRevision(plumbing.Revision(revision))
 	CheckIfError(err)
@@ -395,7 +392,7 @@ func RevisionCommits(r *git.Repository, baseCommitId, revision string) *plumbing
 // 	Returns list of commit objects between the given commit hash sorted by date
 func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit, error) {
 	//TODO: should I reverse the begin and end?
-	helper.INFO.Println("Getting the RevList of commits between " + beginCommit + " and " + endCommit)
+	//helper.INFO.Println("Getting the RevList of commits between " + beginCommit + " and " + endCommit)
 	commits := make([]*object.Commit, 0)
 	var ref1hist []plumbing.Hash
 	var err error
@@ -420,7 +417,7 @@ func RevList(r *git.Repository, beginCommit, endCommit string) ([]*object.Commit
 	//  sorts by datetime
 	sort.Slice(commits, func(i, j int) bool { return commits[i].Committer.When.Unix() > commits[j].Committer.When.Unix() })
 	//fmt.Println(commits)
-	helper.INFO.Println("Got " + strconv.Itoa(len(commits)) + " commits to compute the churn-metrics")
+	//helper.INFO.Println("Got " + strconv.Itoa(len(commits)) + " commits to compute the churn-metrics")
 
 	return commits, err
 }
@@ -464,7 +461,7 @@ func Blame(repo *git.Repository, hash *plumbing.Hash, path string) (*git.BlameRe
 	//	CheckIfError(err)
 	//}
 
-	helper.INFO.Println("Getting Blame results for commit: " + commitObj.Hash.String() + " and file: " + path)
+	//helper.INFO.Println("Getting Blame results for commit: " + commitObj.Hash.String() + " and file: " + path)
 	//TODO: issue: https://github.com/src-d/go-git/issues/725
 	blameResult, err := git.Blame(commitObj, path)
 

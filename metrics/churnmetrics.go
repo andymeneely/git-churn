@@ -78,7 +78,7 @@ type AggAllChurnMetricsOutput struct {
 // 		jsonOPToFile: if true writes the JSON output to the a file
 // 		printOP: if true prints the output into the console in a human readable form
 func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitId string, whitespace bool, jsonOPToFile, printOP bool) (*ChurnMetricsOutput, error) {
-	helper.INFO.Println("INSIDE : GetChurnMetrics")
+	//helper.INFO.Println("INSIDE : GetChurnMetrics")
 
 	defer helper.Duration(helper.Track("GetChurnMetrics"))
 	var err error
@@ -106,10 +106,12 @@ func GetChurnMetrics(repo *git.Repository, baseCommitId, filePath, parentCommitI
 	// neglect the 1st commit as we need not compare the commit with itself
 	commits = commits[1:]
 
+	//Ref. https://golangbot.com/buffered-channels-worker-pools/
 	// Channel to hold the commit details
 	commitsChannel := make(chan *object.Commit, 10)
 	commitDetailsChannel := make(chan CommitDetails, 10)
 
+	helper.INFO.Println("Commits count: " + strconv.Itoa(len(commits)))
 	go allocate(commitsChannel, commits)
 	done := make(chan bool)
 
@@ -176,12 +178,10 @@ func writeJsonToFile(output interface{}) {
 
 // processCommitDetails appends each CommitDetails from the commitsChannel into commitDetailsArr. Also prints each commit detail if printOP is true.
 func processCommitDetails(commitDetailsChannel chan CommitDetails, commitDetailsArr *[]CommitDetails, printOP bool, done chan bool) {
-	// TODO: Research a better method to make sure all the threads are executed than using wait
-	helper.INFO.Println("INSIDE : processCommitDetails")
-
-	//time.Sleep(100)
+	//helper.INFO.Println("INSIDE : processCommitDetails")
 	for commitDetails := range commitDetailsChannel {
 		if len(commitDetails.ChurnMetrics) != 0 {
+			helper.INFO.Println("Processed churn-metrics for commit: " + commitDetails.CommitId)
 			if printOP {
 				PrintInYellow("\tCommitID: " + commitDetails.CommitId)
 				PrintInPink("\tCommit Author: " + commitDetails.CommitAuthor)
@@ -208,14 +208,13 @@ func processCommitDetails(commitDetailsChannel chan CommitDetails, commitDetails
 			}
 			*commitDetailsArr = append(*commitDetailsArr, commitDetails)
 		}
-		//wg.Done()
 	}
 	done <- true
 }
 
 // getCommitDetails adds commitDetails for the given commit into the commitsChannel
 func getCommitDetails(commitsChannel chan *object.Commit, commitsDetailsChannel chan CommitDetails, repo *git.Repository, baseCommitId string, filePath string, whitespace bool, wg *sync.WaitGroup) {
-	helper.INFO.Println("INSIDE : getCommitDetails")
+	//helper.INFO.Println("INSIDE : getCommitDetails")
 	for commit := range commitsChannel {
 		time.Sleep(2000)
 		commitDetails := new(CommitDetails)
@@ -242,7 +241,7 @@ type FileDeletedLines struct {
 // calculateChurnMetrics calculate the churn metrics and returns the array of ChurnMetrics
 func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitAuthor string, parentCommitHash *plumbing.Hash, whitespace bool) ([]ChurnMetrics, error) {
 	//REF: https://git-scm.com/docs/gitrevisions
-	helper.INFO.Println("INSIDE : calculateChurnMetrics")
+	//helper.INFO.Println("INSIDE : calculateChurnMetrics")
 	changes, _, _ := gitfuncs.CommitDiff(repo, baseCommitId, parentCommitHash)
 	fileDeletedLinesMap := gitfuncs.DeletedLineNumbers(changes, filePath, whitespace)
 
@@ -263,10 +262,10 @@ func calculateChurnMetrics(repo *git.Repository, baseCommitId, filePath, commitA
 		go getChurnMetrics(ipFileChannel, churnMetricsChannel, repo, parentCommitHash, commitAuthor, &wg)
 	}
 	wg.Wait()
-	helper.INFO.Println("Closed commitDetailsChannel CHANNEL!!!!!")
+	//helper.INFO.Println("Closed commitDetailsChannel CHANNEL!!!!!")
 	close(churnMetricsChannel)
 
-	helper.INFO.Println("PROCESSED ALL " + strconv.Itoa(len(churnMetricsChannel)))
+	//helper.INFO.Println("PROCESSED ALL " + strconv.Itoa(len(churnMetricsChannel)))
 	<-done
 
 	//var waitGroup sync.WaitGroup
@@ -295,7 +294,7 @@ func allocateFiles(ipChannel chan FileDeletedLines, fileDeletedLinesMap map[stri
 func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr *[]ChurnMetrics, done chan bool) {
 	// wait to make sure all the threads have completed execution and added the churnMetrics details into churnMetricsChannel
 	// TODO: Research a better method to make sure all the threads are executed than using wait
-	helper.INFO.Println("INSIDE : processChurnMetrics")
+	//helper.INFO.Println("INSIDE : processChurnMetrics")
 	time.Sleep(500)
 	for {
 		churnMetrics, ok := <-churnMetricsChannel
@@ -310,7 +309,7 @@ func processChurnMetrics(churnMetricsChannel chan ChurnMetrics, churnMetricsArr 
 
 // getChurnMetrics adds ChurnMetrics with churn details and count into the churnMetricsChannel for the specified deleted lines
 func getChurnMetrics(ipFileChannel chan FileDeletedLines, churnMetricsChannel chan ChurnMetrics, repo *git.Repository, parentCommitHash *plumbing.Hash, commitAuthor string, wg *sync.WaitGroup) {
-	helper.INFO.Println("INSIDE : getChurnMetrics")
+	//helper.INFO.Println("INSIDE : getChurnMetrics")
 	for file := range ipFileChannel {
 		if len(file.deletedLines) != 0 {
 			churnMetrics := new(ChurnMetrics)

@@ -2,7 +2,6 @@ package helper
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,6 +21,7 @@ func init() {
 		os.MkdirAll("../logs", 0777)
 	}
 	absPath, err := filepath.Abs("../logs")
+	fmt.Println("Created logs folder at : ", absPath)
 	if err != nil {
 		fmt.Println("Error reading given path:", err)
 	}
@@ -34,5 +34,4 @@ func init() {
 	}
 	INFO = log.New(generalLog, "INFO:\t", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	ERROR = log.New(generalLog, "ERROR:\t", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-	log.SetOutput(ioutil.Discard)
 }
