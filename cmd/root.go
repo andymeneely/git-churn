@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"github.com/andymeneely/git-churn/gitfuncs"
-	metrics "github.com/andymeneely/git-churn/matrics"
+	"github.com/andymeneely/git-churn/helper"
+	metrics "github.com/andymeneely/git-churn/metrics"
 	"github.com/andymeneely/git-churn/print"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
 	"strings"
 	"unicode"
@@ -23,6 +25,7 @@ func init() {
 	pf.BoolVarP(&whitespace, "whitespace", "w", true, "Excludes whitespaces while calculating the churn metrics is set to false")
 	pf.BoolVarP(&jsonOPToFile, "json", "j", false, "Writes the JSON output to a file within a folder named churn-details")
 	pf.BoolVarP(&printOP, "print", "p", true, "Prints the output in a human readable format")
+	pf.BoolVarP(&enableLog, "logging", "l", false, "Enables logging. Defaults to false")
 }
 
 var (
@@ -33,6 +36,7 @@ var (
 	jsonOPToFile bool
 	printOP      bool
 	aggregate    string
+	enableLog    bool
 
 	rootCmd = &cobra.Command{
 		Use:   "git-churn",
@@ -40,6 +44,12 @@ var (
 		Long: `git-churn gives the churn metrics like insertions, deletions, etc for the given commit hash in the repo specified.
                 Complete documentation is available at https://github.com/andymeneely/git-churn`,
 		Run: func(cmd *cobra.Command, args []string) {
+			if !enableLog {
+				helper.INFO.SetFlags(0)
+				helper.INFO.SetOutput(ioutil.Discard)
+			}
+			helper.INFO.Println("\n Processing new request")
+			helper.INFO.Println("")
 			//var churnMetrics interface{}
 			var err error
 			commitIds := strings.Split(commitId, "..")
@@ -62,6 +72,7 @@ var (
 			}
 			repo := gitfuncs.GetRepo(repoUrl)
 			print.PrintInBlue(repoUrl + " " + commitId + " " + filepath + " " + firstCommitId)
+			helper.INFO.Println("Generating git-churn for the following: \n" + "Repo:" + repoUrl + " " + " commitId:" + commitId + " " + " filepath:" + filepath + " " + " firstCommitId:" + firstCommitId)
 
 			if aggregate == "" {
 				_, err = metrics.GetChurnMetrics(repo, commitId, filepath, firstCommitId, whitespace, jsonOPToFile, printOP)

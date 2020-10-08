@@ -4,3 +4,5 @@ repos/*
 !repos/.gitkeep
 .idea/
 git-churn
+logs/
+.DS_Store

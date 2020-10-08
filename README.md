@@ -164,3 +164,25 @@ For all files in a commit aggregated
 * Number of authors
 * Number of committers
 * Inn
+
+
+# UML
+Generated using https://www.dumels.com/
+
+![Alt text](git-churn_UML.svg?raw=true "UML")
+
+# Profiling
+
+To generate profiling files, execute the following commands inside the metrics' directory where the test cases are present:
+
+```
+go test -cpuprofile cpu.prof
+go test -memprofile mem.prof
+```
+
+In order to visualize and see the profiling data on to a web page, execute the pollowing commands:
+
+```
+go tool pprof -http=localhost:12345 cpu.prof 
+go tool pprof -http=localhost:12346 mem.prof 
+```
