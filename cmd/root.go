@@ -48,7 +48,8 @@ var (
 				helper.INFO.SetFlags(0)
 				helper.INFO.SetOutput(ioutil.Discard)
 			}
-			helper.INFO.Println("\n Processing new request\n")
+			helper.INFO.Println("\n Processing new request")
+			helper.INFO.Println("")
 			//var churnMetrics interface{}
 			var err error
 			commitIds := strings.Split(commitId, "..")
