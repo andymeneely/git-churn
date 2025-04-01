@@ -24,6 +24,7 @@ type ChurnMetrics struct {
 	DeletedLinesCount     int
 	SelfChurnCount        int
 	InteractiveChurnCount int
+	NumEffectiveAuthors   int
 	//Map of CommitId, Author
 	ChurnDetails map[string]string
 	//FileDiffMetrics FileDiffMetrics
@@ -47,6 +48,7 @@ type AggChurnMetrics struct {
 	TotalDeletedLinesCount     int
 	TotalSelfChurnCount        int
 	TotalInteractiveChurnCount int
+	TotalAuthors			   int
 }
 
 type AggCommitDetails struct {
@@ -69,6 +71,7 @@ type AggAllChurnMetricsOutput struct {
 	TotalDeletedLinesCount     int
 	TotalSelfChurnCount        int
 	TotalInteractiveChurnCount int
+	TotalAuthors               int
 }
 
 // GetChurnMetrics Returns the Churn metrics details for the given repo
@@ -194,6 +197,7 @@ func processCommitDetails(commitDetailsChannel chan CommitDetails, commitDetails
 						fmt.Println("\t\tDeleted lines count: " + strconv.Itoa(churnMetrics.DeletedLinesCount))
 						fmt.Println("\t\tSelf Churn count: " + strconv.Itoa(churnMetrics.SelfChurnCount))
 						fmt.Println("\t\tInteractive Churn count: " + strconv.Itoa(churnMetrics.InteractiveChurnCount))
+						fmt.Println("\t\tEffective Authors count: " + strconv.Itoa(churnMetrics.NumEffectiveAuthors))
 						fmt.Println("\t\tChurn Details :")
 						for k, v := range churnMetrics.ChurnDetails {
 							fmt.Println("\t\t\tcommit: " + k + ", author: " + v)
@@ -216,7 +220,7 @@ func processCommitDetails(commitDetailsChannel chan CommitDetails, commitDetails
 func getCommitDetails(commitsChannel chan *object.Commit, commitsDetailsChannel chan CommitDetails, repo *git.Repository, baseCommitId string, filePath string, whitespace bool, wg *sync.WaitGroup) {
 	//helper.INFO.Println("INSIDE : getCommitDetails")
 	for commit := range commitsChannel {
-		time.Sleep(2000)
+		// time.Sleep(2000)
 		commitDetails := new(CommitDetails)
 		parentCommitHash := gitfuncs.RevisionCommits(repo, baseCommitId, commit.Hash.String())
 		commitDetails.CommitId = parentCommitHash.String()
@@ -317,10 +321,12 @@ func getChurnMetrics(ipFileChannel chan FileDeletedLines, churnMetricsChannel ch
 			if err == nil {
 				lines := blame.Lines
 				churnDetails := make(map[string]string)
+				effectiveAuthors := make(map[string]bool)
 				selfChurnCount := 0
 				interactiveChurnCount := 0
 				for _, deletedLine := range file.deletedLines {
 					churnAuthor := lines[deletedLine-1].Author
+					effectiveAuthors[churnAuthor] = true
 					if churnAuthor == commitAuthor {
 						selfChurnCount += 1
 					} else {
@@ -331,6 +337,7 @@ func getChurnMetrics(ipFileChannel chan FileDeletedLines, churnMetricsChannel ch
 				churnMetrics.DeletedLinesCount = len(file.deletedLines)
 				churnMetrics.SelfChurnCount = selfChurnCount
 				churnMetrics.InteractiveChurnCount = interactiveChurnCount
+				churnMetrics.NumEffectiveAuthors = len(effectiveAuthors)
 				churnMetrics.ChurnDetails = churnDetails
 				churnMetrics.FilePath = file.file
 				churnMetricsChannel <- *churnMetrics
@@ -360,7 +367,7 @@ func AggrChurnMetrics(repo *git.Repository, baseCommitId string, parentCommitId 
 	return aggChurnMetricsOutput
 }
 
-// getAllAggChurnMetrics aggregates all the churn count from all the commit aggregated churn metrics and returns AggAllChurnMetricsOutput
+// getAllAggChurnMetrics aggregates all the churn count from all the commits aggregated churn metrics and returns AggAllChurnMetricsOutput
 func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool) interface{} {
 	var aggChurnMetricsOP = getCommitAggChurnMetrics(churnMetricsOutput, false)
 	var aggAllChurnMetricsOutput AggAllChurnMetricsOutput
@@ -368,16 +375,19 @@ func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool)
 	if len(churnMetricsOutput.CommitDetails) > 0 {
 		aggAllChurnMetricsOutput.ParentCommitId = churnMetricsOutput.CommitDetails[len(churnMetricsOutput.CommitDetails)-1].CommitId
 		var commitsCount, totalDeletedLinesCount, totalSelfChurnCount, totalInteractiveChurnCount int
+		authorsSet := make(map[string]bool)
 		for _, aggCommitDetails := range aggChurnMetricsOP.(AggChurnMetricsOutput).AggCommitDetails {
 			commitsCount++
 			totalDeletedLinesCount += aggCommitDetails.AggChurnMetrics.TotalDeletedLinesCount
 			totalSelfChurnCount += aggCommitDetails.AggChurnMetrics.TotalSelfChurnCount
 			totalInteractiveChurnCount += aggCommitDetails.AggChurnMetrics.TotalInteractiveChurnCount
+			authorsSet[aggCommitDetails.CommitAuthor] = true
 		}
 		aggAllChurnMetricsOutput.TotalCommits = commitsCount
 		aggAllChurnMetricsOutput.TotalInteractiveChurnCount = totalInteractiveChurnCount
 		aggAllChurnMetricsOutput.TotalSelfChurnCount = totalSelfChurnCount
 		aggAllChurnMetricsOutput.TotalDeletedLinesCount = totalDeletedLinesCount
+		aggAllChurnMetricsOutput.TotalAuthors = len(authorsSet)
 
 		if printOP {
 			PrintInYellow("Base Commit ID: " + aggAllChurnMetricsOutput.BaseCommitId)
@@ -386,6 +396,7 @@ func getAllAggChurnMetrics(churnMetricsOutput *ChurnMetricsOutput, printOP bool)
 			fmt.Println("\tTotal Deleted lines count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalDeletedLinesCount))
 			fmt.Println("\tTotal Self Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalSelfChurnCount))
 			fmt.Println("\tTotal Interactive Churn count: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalInteractiveChurnCount))
+			PrintInBlue("Total Authors: " + strconv.Itoa(aggAllChurnMetricsOutput.TotalAuthors))
 		}
 	}
 	return aggAllChurnMetricsOutput
