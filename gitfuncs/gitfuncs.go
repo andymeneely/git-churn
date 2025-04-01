@@ -14,28 +14,6 @@ import (
 	. "github.com/andymeneely/git-churn/print"
 )
 
-func LastCommit(repoUrl string) string {
-	// Clones the given repository in memory, creating the remote, the local
-	// branches and fetching the objects, exactly as:
-	//PrintInBlue("git clone " + repoUrl)
-
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		URL: repoUrl,
-	})
-
-	CheckIfError(err)
-
-	// ... retrieving the branch being pointed by HEAD
-	ref, err := r.Head()
-	CheckIfError(err)
-	// ... retrieving the commit object
-	commit, err := r.CommitObject(ref.Hash())
-	CheckIfError(err)
-
-	//fmt.Println(commit)
-
-	return commit.Message
-}
 
 func Branches(repoUrl string) []string {
 	// Clones the given repository in memory, creating the remote, the local
