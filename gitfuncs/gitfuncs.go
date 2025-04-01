@@ -14,58 +14,6 @@ import (
 	. "github.com/andymeneely/git-churn/print"
 )
 
-
-func Branches(repoUrl string) []string {
-	// Clones the given repository in memory, creating the remote, the local
-	// branches and fetching the objects, exactly as:
-	//PrintInBlue("git clone " + repoUrl)
-
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		URL: repoUrl,
-	})
-	//r, err := git.PlainOpen("/Users/raj.g/Documents/RA/git-churn")
-
-	CheckIfError(err)
-
-	branchIttr, _ := r.Branches()
-
-	//fmt.Println(branchIttr)
-	var branches []string
-	//TODO: Check why it is only getting the master branch
-	err = branchIttr.ForEach(func(ref *plumbing.Reference) error {
-		//fmt.Println(ref.Name().String())
-		branches = append(branches, ref.Name().String())
-		return nil
-	})
-
-	return branches
-}
-
-func Tags(repoUrl string) []*plumbing.Reference {
-
-	//PrintInBlue("git clone " + repoUrl)
-
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		URL: repoUrl,
-	})
-
-	CheckIfError(err)
-	// List all tag references, both lightweight tags and annotated tags
-	//PrintInBlue("git show-ref --tag")
-	var tagsArr []*plumbing.Reference
-
-	tagrefs, err := r.Tags()
-	CheckIfError(err)
-	err = tagrefs.ForEach(func(t *plumbing.Reference) error {
-		tagsArr = append(tagsArr, t)
-		return nil
-	})
-	CheckIfError(err)
-
-	return tagsArr
-
-}
-
 func Checkout(repoUrl, hash string) *git.Repository {
 	//PrintInBlue("git clone " + repoUrl)
 

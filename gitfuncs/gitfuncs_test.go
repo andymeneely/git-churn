@@ -5,14 +5,6 @@ import (
 	"testing"
 )
 
-func TestBranches(t *testing.T) {
-	//dir,_:= os.Getwd()
-	//rootDit := strings.Replace(dir,"gitfuncs","",1)
-	branches := Branches("https://github.com/andymeneely/git-churn")
-	assert := assert.New(t)
-	assert.NotEqual(0, len(branches))
-}
-
 func TestRevList(t *testing.T) {
 	r := Checkout("https://github.com/andymeneely/git-churn", "d78e64088e11bc2fd4f36f0421be91ebac52008c")
 	commits, _ := RevList(r, "d78e64088e11bc2fd4f36f0421be91ebac52008c", "a8b24a74bae39a941186e11969f70058a351327d")

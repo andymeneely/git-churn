@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 )
 
 // INFO exported
@@ -14,20 +13,8 @@ var INFO *log.Logger
 var ERROR *log.Logger
 
 func init() {
-	fmt.Println("Checking/creating logs folder")
-	if _, err := os.Stat("logs"); os.IsNotExist(err) {
-		fmt.Println("Creating logs folder")
-
-		os.MkdirAll("logs", 0777)
-	}
-	absPath, err := filepath.Abs("logs")
-	fmt.Println("Created logs folder at : ", absPath)
-	if err != nil {
-		fmt.Println("Error reading given path:", err)
-	}
-
 	fmt.Println("Creating log file")
-	generalLog, err := os.OpenFile(absPath+"/git-churn-log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	generalLog, err := os.OpenFile("git-churn.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		os.Exit(1)
