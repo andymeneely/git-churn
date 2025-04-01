@@ -7,3 +7,4 @@ git-churn
 logs/
 .DS_Store
 *.exe
+*.log
