@@ -15,12 +15,12 @@ var ERROR *log.Logger
 
 func init() {
 	fmt.Println("Checking/creating logs folder")
-	if _, err := os.Stat("../logs"); os.IsNotExist(err) {
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
 		fmt.Println("Creating logs folder")
 
-		os.MkdirAll("../logs", 0777)
+		os.MkdirAll("logs", 0777)
 	}
-	absPath, err := filepath.Abs("../logs")
+	absPath, err := filepath.Abs("logs")
 	fmt.Println("Created logs folder at : ", absPath)
 	if err != nil {
 		fmt.Println("Error reading given path:", err)
