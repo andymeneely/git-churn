@@ -16,7 +16,7 @@ import (
 func init() {
 	rootCmd.AddCommand(versionCmd)
 	pf := rootCmd.PersistentFlags()
-	pf.StringVarP(&repoUrl, "repo", "r", "", "Git Repository URL on which the churn metrics has to be computed")
+	pf.StringVarP(&repoUrl, "repo", "r", "", "Git Repository URL on which the churn metrics has to be computed. If not specified, assume the current directory.")
 	//print.CheckIfError(cobra.MarkFlagRequired(pf, "repo"))
 	pf.StringVarP(&commitId, "commit", "c", "", "Commit hash for which the metrics has to be computed")
 	//print.CheckIfError(cobra.MarkFlagRequired(pf, "commit"))
@@ -50,7 +50,6 @@ var (
 			}
 			helper.INFO.Println("\n Processing new request")
 			helper.INFO.Println("")
-			//var churnMetrics interface{}
 			var err error
 			commitIds := strings.Split(commitId, "..")
 			firstCommitId := commitIds[0]
